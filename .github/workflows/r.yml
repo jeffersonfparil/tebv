@@ -18,11 +18,13 @@ jobs:
           sudo apt install -y libcurl4-openssl-dev libharfbuzz-dev libfribidi-dev
       - name: Install dependencies on R
         run: |
-          install.packages(c("devtools", "testthat", "doParallel", "foreach", "txtplot"))
+          install.packages(c("devtools", "testthat", "doParallel", "foreach", "txtplot", "sommer"))
+          devtools::install_github("jeffersonfparil/simquantgen")
         shell: Rscript {0}
       - name: Test
         run: |
-          devtools::load_all()
-          devtools::document()
-          devtools::test()
+          devtools::check()
+          # devtools::load_all()
+          # devtools::document()
+          # devtools::test()
         shell: Rscript {0}

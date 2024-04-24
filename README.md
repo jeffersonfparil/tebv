@@ -1,6 +1,10 @@
 # tebv
 Trial-estimated breeding values: best linear unbiased predictors of entries in single and multi-environment breeding trials
 
+|**Build Status**|**License**|
+|:--------------:|:---------:|
+| <a href="https://github.com/jeffersonfparil/tebv/actions"><img src="https://github.com/jeffersonfparil/tebv/actions/workflows/r.yml/badge.svg"></a> | [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) |
+
 ## Approach and principle
 
 At the moment the approach will be to create a more or less homogenous interface for univariate analysis with plans to extend it to multivariate analysis.
