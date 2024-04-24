@@ -20,6 +20,9 @@ jobs:
         run: |
           install.packages(c("devtools", "testthat", "doParallel", "foreach", "txtplot", "sommer"))
         shell: Rscript {0}
+      - name: Install simquantgen
+        run: |
+          Rscript -e "devtools::install_github("jeffersonfparil/simquantgen")"
       - name: Test
         run: |
           devtools::check()
