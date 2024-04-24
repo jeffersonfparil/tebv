@@ -20,14 +20,12 @@ jobs:
         run: |
           install.packages(c("devtools", "testthat", "doParallel", "foreach", "txtplot", "sommer"))
         shell: Rscript {0}
-      - name: Install simquantgen
+      - name: Install simquantgen and test
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Note that we need to set the environment above to allow us to install simquantgen while it is not available in CRAN yet.
           devtools::install_github("jeffersonfparil/simquantgen")
-        shell: Rscript {0}
-      - name: Test
-        run: |
           devtools::check()
           # devtools::load_all()
           # devtools::document()
