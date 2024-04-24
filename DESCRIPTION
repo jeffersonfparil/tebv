@@ -1,0 +1,18 @@
+Package: tebv
+Title: Trial-estimated breeding values: best linear unbiased predictors of entries in single and multi-environment breeding trials
+Version: 0.0.0.1
+Authors@R: 
+    person(given="Jeff", family="Paril", email="jeffersonparil@gmail.com", role=c("aut", "cre"),
+           comment = c(ORCID = "https://orcid.org/0000-0002-5693-4123"))
+Description: Calculates the best linear unbiased predictors (BLUPs) of entries (genotypes) in single and multi-environment breeding trials.
+License: GPL (>= 3) + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Suggests: 
+    testthat (>= 3.0.0)
+Remotes:
+    jeffersonparil/simquantgen
+Imports:
+    sommer,
+    txtplot
