@@ -22,7 +22,8 @@ jobs:
         shell: Rscript {0}
       - name: Install simquantgen
         run: |
-          Rscript -e "devtools::install_github("jeffersonfparil/simquantgen")"
+          devtools::install_github("jeffersonfparil/simquantgen")
+        shell: Rscript {0}
       - name: Test
         run: |
           devtools::check()
