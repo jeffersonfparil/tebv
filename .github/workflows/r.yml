@@ -19,7 +19,6 @@ jobs:
       - name: Install dependencies on R
         run: |
           install.packages(c("devtools", "testthat", "doParallel", "foreach", "txtplot", "sommer"))
-          devtools::install_github("jeffersonfparil/simquantgen")
         shell: Rscript {0}
       - name: Test
         run: |
