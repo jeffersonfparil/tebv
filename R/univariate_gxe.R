@@ -171,6 +171,14 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", skip_algo_based_
     vec_id = unique(df_gxe_crd$id)
     vec_environ = unique(df_gxe_crd$environ)
     vec_u_names = names(list_u_fitstats$u)
+
+
+    # if ((list_u_fitstats$algorithm == "Newton-Raphson") & (formula_random_components == "~environ:id, rcov= ~ units")) {
+
+    # } else if ((list_u_fitstats$algorithm == "Newton-Raphson") & (formula_random_components == "~id + environ:id, rcov= ~ units"))
+
+
+
     if (((sum(duplicated(vec_u_names)) > 0) & (sum(grepl("^PC", vec_u_names)) == 0)) | (length(vec_u_names)==length(vec_id))) {
         if (grepl("rrc\\(", formula_random_components)) {
             n_PC = length(vec_u_names) / length(vec_id)
@@ -310,9 +318,9 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", sk
             print("Fitting models via Newton-Raphson algorithm")
         }
         ###m Newton-Raphson models
-        mod_newtonrap_1 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ environ:block + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_1 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
         mod_newtonrap_3 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
@@ -328,7 +336,7 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", sk
             print("Fitting models via Henderson's mixed model equations")
         }
         ### Henderson's models
-        mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ environ:block + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
         mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
@@ -360,11 +368,30 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", sk
         "}"))
     }
     ### Extract BLUPs per environment
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_newtonrap=mod_newtonrap_1, mod_henderson=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_newtonrap=mod_newtonrap_2, mod_henderson=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_newtonrap=mod_newtonrap_3, mod_henderson=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_newtonrap=mod_newtonrap_4, mod_henderson=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_newtonrap=mod_newtonrap_5, mod_henderson=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_newtonrap=mod_newtonrap_6, mod_henderson=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_1, mod_newtonrap=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_2, mod_newtonrap=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_3, mod_newtonrap=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_4, mod_newtonrap=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_5, mod_newtonrap=NA)
+    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_6, mod_newtonrap=NA)
+
+
+
+    ### !!!!NEED A BETTER NAMES PARSING!!!!
+
+
+
     formula_random_components = paste(as.character(list_u_fitstats$model$random), collapse="")
     vec_id = unique(df_gxe_rcbd$id)
     vec_environ = unique(df_gxe_rcbd$environ)
     vec_u_names = names(list_u_fitstats$u)
-    vec_u_names[!grepl("block", vec_u_names)] = NA ### Remove all random effects with block effects as we are only interested in the id and environmental effects
+    # vec_u_names[!grepl("block", vec_u_names)] = NA ### Remove all random effects with block effects as we are only interested in the id and environmental effects
     if (((sum(duplicated(vec_u_names)) > 0) & (sum(grepl("^PC", vec_u_names)) == 0)) | (length(vec_u_names)==length(vec_id))) {
         if (grepl("rrc\\(", formula_random_components)) {
             n_PC = length(vec_u_names) / length(vec_id)
