@@ -5,6 +5,8 @@ Trial-estimated breeding values: best linear unbiased predictors of entries in s
 |:--------------:|:---------:|
 | <a href="https://github.com/jeffersonfparil/tebv/actions"><img src="https://github.com/jeffersonfparil/tebv/actions/workflows/r.yml/badge.svg"></a> | [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) |
 
+A streamlined interface to calculate the breeding values of entries in breeding trials.
+
 ## Approach and principle
 
 At the moment the approach will be to create a more or less homogenous interface for univariate analysis with plans to extend it to multivariate analysis.
@@ -13,6 +15,15 @@ We fit multiple *plausible* linear models via:
 - canonical Henderson's equations (efficient if $n \ge p$) and,
 - Newton-Raphson transformations (more efficient if $n \lt p$).
 We then select the best fitting model based on which one on average has higher log-likelihood, lower AIC and lower BIC.
+
+We fit 3 basic experimental design models:
+- completely randomised design (CRD),
+- randomised complete block design (RCBD), and
+- spatial design with row and column effects (SPAT).
+
+These models are implemented for:
+- single environment trials, and
+- multiple environment trials.
 
 We use open-source tools as much as possible. This means we prefer `sommer` over `ASReml`. I would like to believe that being open-source where many other people can review and correct your code is a much better way of having confidence on the tool than having a lot of previous studies published using the tool.
 

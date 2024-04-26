@@ -3,6 +3,8 @@
 ### We use this design when we do not expect heterogeneity in the entire trial area, e.g. small trial and highly-controlled conditions.
 fn_GX1_CRD_BLUPs = function(df, trait="y", id="gen", verbose=FALSE) {
     ### TEST #################################################################################
+    # source("helpers.R")
+    # library(sommer)
     # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
     # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
     # Y = list_Y_b_E_b_epi$Y
@@ -42,6 +44,8 @@ fn_GX1_CRD_BLUPs = function(df, trait="y", id="gen", verbose=FALSE) {
 ### We use this design when we expect heterogeneity along a single direction in the trial area, e.g. field trial along a slope.
 fn_GX1_RCBD_BLUPs = function(df, trait="y", id="gen", block="rep", verbose=FALSE) {
     ### TEST #################################################################################
+    # source("helpers.R")
+    # library(sommer)
     # n = 100
     # n_blocks = 10
     # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
@@ -109,6 +113,8 @@ fn_GX1_RCBD_BLUPs = function(df, trait="y", id="gen", block="rep", verbose=FALSE
 ### We use this design when we expect significant heterogeneity in the entire trial area, e.g. field trials with known nutrient gradients along one direction and moisture gradient along an orthogonal direction.
 fn_GX1_SPAT_BLUPs = function(df, trait="y", id="gen", row="row", col="col", verbose=FALSE) {
     ### TEST #################################################################################
+    # source("helpers.R")
+    # library(sommer)
     # n = 100
     # n_reps = 3
     # n_rows = 10
