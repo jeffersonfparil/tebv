@@ -132,14 +132,15 @@ fn_find_best_fit_within_algo = function(list_mod_henderson, list_mod_newtonrap, 
 
 ### Extracting BLUPs from the Henderson's mixed model equations-based fit or Newton-Raphson's transformations-based  (mmec vs mmer)
 ### depending on which has higher log-likelihood, lower AIC, and lower BIC on average.
-fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, verbose=FALSE) {
+fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extract_BLUPs=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
     # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
     # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
     # Y = list_Y_b_E_b_epi$Y
-    # df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=3))
-    # mod_henderson = tryCatch(sommer::mmec(y ~ 1, random = ~ gen, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
-    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1, random = ~ gen, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # df = data.frame(y=as.vector(Y), id=rep(rownames(G), times=3))
+    # mod_henderson = tryCatch(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # extract_BLUPs=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.na(mod_henderson[1]) & is.na(mod_newtonrap[1])) {
         return(NA)
@@ -166,20 +167,121 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, verbo
             (fitstats_henderson$BIC < fitstats_newtonrap$BIC)
         ))
     }
-    ### Extract BLUPs
+    ### Extract BLUPs or BLUEs
     if (fitstats_comparison >= 0.5) {
         algorithm = "Henderson"
         fitstats = fitstats_henderson
         model = mod_henderson$args
-        u = mod_henderson$u[,1]
+        ### Sanity check
+        if ((sum(grepl("id", model)) == 0) | (sum(grepl("y", model$fixed)) == 0)) {
+            print("Please use conventional variable names in the input data frame, i.e. y for the response variables and id for the entry or genotype names.")
+            return(NA)
+        }
+        if (extract_BLUPs) {
+            n_ids = length(unique(mod_henderson$data$id))
+            n_environs = length(unique(mod_henderson$data$environ))
+            u = mod_henderson$u[,1]
+            if (!grepl("rrc\\(environ, id, y, nPC", paste(model$random, collapse=""))) {
+                if (length(u) == (n_ids*n_environs)) {
+                    names(u) = paste0(rep(unique(mod_henderson$data$environ), each=n_ids), ":", names(u))
+                }
+                if (length(u) == (n_ids + (n_ids*n_environs))) {
+                    names(u) = paste0(rep(c("", as.character(unique(mod_henderson$data$environ))), each=n_ids), ":", names(u))
+                    names(u) = gsub("^:", "", names(u))
+                }
+            } else {
+                n_PCs = as.numeric(gsub(" ", "", unlist(strsplit(unlist(strsplit(paste(model$random, collapse=""), "nPC ="))[2], ")"))[1]))
+                if (length(u) == (n_ids*n_PCs)) {
+                    names(u) = paste0(rep(paste0("PC", 1:n_PCs), each=n_ids), ":", names(u))
+                }
+                if (length(u) == (n_ids + (n_ids*n_PCs))) {
+                    names(u) = paste0(rep(c("", as.character(paste0("PC", 1:n_PCs))), each=n_ids), ":", names(u))
+                    names(u) = gsub("^:", "", names(u))
+                }
+            }
+            V = mod_henderson$sigma ### named vector or matrix for some reason.... (TODO get to the bottom of this!)
+        } else {
+            ### NOTE: BLUEs will never be used for multi-environmental trial analyses
+            ### Add the intercept
+            intercept = mod_henderson$b[1,1]
+            b = mod_henderson$b[,1] + intercept
+            ### Define the intercept as the first level of the fixed effects
+            b[1] = b[1] - intercept
+            control_name = levels(mod_henderson$data$id)[1]
+            if (is.null(control_name)) {
+                control_name = unique(mod_henderson$data$id)[which(!(unique(mod_henderson$data$id) %in% names(b)))]
+            }
+            names(b)[1] = control_name
+            ### Extract the variance-covariance matrix of BLUEs
+            V = mod_henderson$Ci[1:length(b), 1:length(b)]
+            rownames(V) = colnames(V) = names(b)
+        }
     } else {
         algorithm = "Newton-Raphson"
         fitstats = fitstats_newtonrap
         model = mod_newtonrap$call
-        u = unlist(mod_newtonrap$U)
+        ### Sanity check
+        if ((sum(grepl("id", model)) == 0) | (sum(grepl("y", model$fixed)) == 0)) {
+            print("Please use conventional variable names in the input data frame, i.e. y for the response variables and id for the entry or genotype names.")
+            return(NA)
+        }
+        if (extract_BLUPs) {
+            if (!grepl("rrc\\(environ, id, y, nPC", paste(model$random, collapse=""))) {
+                if (grepl("environ:id", paste(model$fixed, collapse="")) | grepl("environ:id", paste(model$random, collapse=""))) {
+                    u = unlist(mod_newtonrap$U$`environ:id`$y)
+                    names(u) = gsub("^environ", "", names(u))
+                    names(u) = gsub(":id", ":", names(u))
+                    V = mod_newtonrap$VarU$`environ:id`$y
+                } else {
+                    u = unlist(mod_newtonrap$U$id$y)
+                    names(u) = gsub("^id", "", names(u))
+                    V = mod_newtonrap$VarU$id$y
+                }
+                rownames(V) = colnames(V) = names(u)
+            } else {
+                n_ids = length(unique(mod_newtonrap$data$id))
+                n_PCs = as.numeric(gsub(" ", "", unlist(strsplit(unlist(strsplit(paste(model$random, collapse=""), "nPC ="))[2], ")"))[1]))
+                u = c()
+                for (pc in 1:n_PCs) {
+                    u = c(u, eval(parse(text=paste0("unlist(mod_newtonrap$U$`PC", pc, ":id`$y)"))))
+                }
+                if (length(u) == (n_ids*n_PCs)) {
+                    names(u) = paste0(rep(paste0("PC", 1:n_PCs), each=n_ids), ":", names(u))
+                }
+                if (length(u) == (n_ids + (n_ids*n_PCs))) {
+                    names(u) = paste0(rep(c("", as.character(paste0("PC", 1:n_PCs))), each=n_ids), ":", names(u))
+                    names(u) = gsub("^:", "", names(u))
+                }
+            }
+            if (is.null(u)) {
+                print("No random effects corresponding to the entries found.")
+                print("Please consider using `extract_BLUPs=FALSE`.")
+                return(NA)
+            }
+        } else {
+            ### NOTE: BLUEs will never be used for multi-environmental trial analyses
+            ### Add the intercept
+            intercept = mod_newtonrap$Beta$Estimate[1]
+            b = mod_newtonrap$Beta$Estimate + intercept
+            names(b) = gsub("^id", "", mod_newtonrap$Beta$Effect)
+            ### Define the intercept as the first level of the fixed effects
+            b[1] = b[1] - intercept
+            control_name = levels(mod_newtonrap$data$id)[1]
+            if (is.null(control_name)) {
+                control_name = unique(mod_newtonrap$data$id)[which(!(unique(mod_newtonrap$data$id) %in% names(b)))]
+            }
+            names(b)[1] = control_name
+            ### Extract the variance-covariance matrix of BLUEs
+            V = mod_newtonrap$VarBeta
+            rownames(V) = colnames(V) = names(b)
+        }
     }
     loglik = fitstats$logLik
     AIC = fitstats$AIC
     BIC = fitstats$BIC
-    return(list(u=u, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model))
+    if (extract_BLUPs) {
+        return(list(u=u, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model))
+    } else {
+        return(list(b=b, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model))
+    }
 }
