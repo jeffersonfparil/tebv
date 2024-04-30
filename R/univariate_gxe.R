@@ -155,7 +155,7 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, 
         list_mod_henderson=list(mod_henderson_1, mod_henderson_2, mod_henderson_3, mod_henderson_4, mod_henderson_5, mod_henderson_6), 
         list_mod_newtonrap=list(mod_newtonrap_1, mod_newtonrap_2, mod_newtonrap_3, mod_newtonrap_4, mod_newtonrap_5, mod_newtonrap_6),
         verbose=verbose)
-    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, verbose=verbose)
+    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
     if (is.na(list_u_fitstats[1])) {
         print("Error: failed to fit linear mixed models.")
         return(NA)
@@ -186,9 +186,6 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, 
     vec_id = as.character(unique(df_gxe_crd$id))
     vec_environ = as.character(unique(df_gxe_crd$environ))
     vec_u_names = as.character(names(list_u_fitstats$u))
-    if (list_u_fitstats$algorithm == "Newton-Raphson") {
-        vec_u_names = gsub(":id", ":", gsub("id.y.", "", gsub("id.y.id", "", gsub("^environ:id.y.environ", "", vec_u_names))))
-    }
     BLUPs = matrix(NA, nrow=length(vec_id), ncol=length(vec_environ))
     rownames(BLUPs) = vec_id
     colnames(BLUPs) = vec_environ
@@ -282,7 +279,13 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, 
     df_BLUPs = eval(parse(text=paste0("data.frame(", id, "=rownames(BLUPs), BLUPs)"))) ### R converts dashes into dots
     rownames(df_BLUPs) = NULL
     colnames(df_BLUPs)[-1] = colnames(BLUPs) ### Revert to original column names of the BLUPs
-    return(list(df_BLUPs=df_BLUPs, loglik=list_u_fitstats$loglik, AIC=list_u_fitstats$AIC, BIC=list_u_fitstats$BIC, algorithm=list_u_fitstats$algorithm, model=list_u_fitstats$model))
+    return(list(
+        df_effects=df_BLUPs,
+        loglik=list_u_fitstats$loglik,
+        AIC=list_u_fitstats$AIC,
+        BIC=list_u_fitstats$BIC,
+        algorithm=list_u_fitstats$algorithm,
+        model=list_u_fitstats$model))
 }
 
 ## Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
@@ -389,7 +392,7 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
         list_mod_henderson=list(mod_henderson_1, mod_henderson_2, mod_henderson_3, mod_henderson_4, mod_henderson_5, mod_henderson_6), 
         list_mod_newtonrap=list(mod_newtonrap_1, mod_newtonrap_2, mod_newtonrap_3, mod_newtonrap_4, mod_newtonrap_5, mod_newtonrap_6),
         verbose=verbose)
-    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, verbose=verbose)
+    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
     if (is.na(list_u_fitstats[1])) {
         print("Error: failed to fit linear mixed models.")
         return(NA)
@@ -420,9 +423,6 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
     vec_id = as.character(unique(df_gxe_rcbd$id))
     vec_environ = as.character(unique(df_gxe_rcbd$environ))
     vec_u_names = as.character(names(list_u_fitstats$u))
-    if (list_u_fitstats$algorithm == "Newton-Raphson") {
-        vec_u_names = gsub(":id", ":", gsub("id.y.", "", gsub("id.y.id", "", gsub("^environ:id.y.environ", "", vec_u_names))))
-    }
     BLUPs = matrix(NA, nrow=length(vec_id), ncol=length(vec_environ))
     rownames(BLUPs) = vec_id
     colnames(BLUPs) = vec_environ
@@ -480,9 +480,7 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
         FA_gamma = with(df_gxe_rcbd, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
         scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
         rownames(scores) = vec_id
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        }
+        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
         for (i in 1:length(vec_id)) {
             for (j in 1:n_PC) {
                 # i = 1; j = 2
@@ -498,9 +496,7 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
         FA_gamma = with(df_gxe_rcbd, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
         scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
         rownames(scores) = vec_id
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        }
+        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
         for (i in 1:length(vec_id)) {
             for (j in 1:n_PC) {
                 # i = 1; j = 2
@@ -516,7 +512,13 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
     df_BLUPs = eval(parse(text=paste0("data.frame(", id, "=rownames(BLUPs), BLUPs)"))) ### R converts dashes into dots
     rownames(df_BLUPs) = NULL
     colnames(df_BLUPs)[-1] = colnames(BLUPs) ### Revert to original column names of the BLUPs
-    return(list(df_BLUPs=df_BLUPs, loglik=list_u_fitstats$loglik, AIC=list_u_fitstats$AIC, BIC=list_u_fitstats$BIC, algorithm=list_u_fitstats$algorithm, model=list_u_fitstats$model))
+    return(list(
+        df_effects=df_BLUPs,
+        loglik=list_u_fitstats$loglik,
+        AIC=list_u_fitstats$AIC,
+        BIC=list_u_fitstats$BIC,
+        algorithm=list_u_fitstats$algorithm,
+        model=list_u_fitstats$model))
 }
 
 ## Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
@@ -649,7 +651,7 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
         list_mod_henderson=list(mod_henderson_1, mod_henderson_2, mod_henderson_3, mod_henderson_4, mod_henderson_5, mod_henderson_6), 
         list_mod_newtonrap=list(mod_newtonrap_1, mod_newtonrap_2, mod_newtonrap_3, mod_newtonrap_4, mod_newtonrap_5, mod_newtonrap_6),
         verbose=verbose)
-    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, verbose=verbose)
+    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
     if (is.na(list_u_fitstats[1])) {
         print("Error: failed to fit linear mixed models.")
         return(NA)
@@ -680,9 +682,6 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
     vec_id = as.character(unique(df_gxe_spat$id))
     vec_environ = as.character(unique(df_gxe_spat$environ))
     vec_u_names = as.character(names(list_u_fitstats$u))
-    if (list_u_fitstats$algorithm == "Newton-Raphson") {
-        vec_u_names = gsub(":id", ":", gsub("id.y.", "", gsub("id.y.id", "", gsub("^environ:id.y.environ", "", vec_u_names))))
-    }
     BLUPs = matrix(NA, nrow=length(vec_id), ncol=length(vec_environ))
     rownames(BLUPs) = vec_id
     colnames(BLUPs) = vec_environ
@@ -740,9 +739,7 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
         FA_gamma = with(df_gxe_spat, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
         scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
         rownames(scores) = vec_id
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        }
+        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
         for (i in 1:length(vec_id)) {
             for (j in 1:n_PC) {
                 # i = 1; j = 2
@@ -758,9 +755,7 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
         FA_gamma = with(df_gxe_spat, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
         scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
         rownames(scores) = vec_id
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        }
+        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
         for (i in 1:length(vec_id)) {
             for (j in 1:n_PC) {
                 # i = 1; j = 2
@@ -776,5 +771,11 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
     df_BLUPs = eval(parse(text=paste0("data.frame(", id, "=rownames(BLUPs), BLUPs)"))) ### R converts dashes into dots
     rownames(df_BLUPs) = NULL
     colnames(df_BLUPs)[-1] = colnames(BLUPs) ### Revert to original column names of the BLUPs
-    return(list(df_BLUPs=df_BLUPs, loglik=list_u_fitstats$loglik, AIC=list_u_fitstats$AIC, BIC=list_u_fitstats$BIC, algorithm=list_u_fitstats$algorithm, model=list_u_fitstats$model))
+    return(list(
+        df_effects=df_BLUPs,
+        loglik=list_u_fitstats$loglik,
+        AIC=list_u_fitstats$AIC,
+        BIC=list_u_fitstats$BIC,
+        algorithm=list_u_fitstats$algorithm,
+        model=list_u_fitstats$model))
 }
