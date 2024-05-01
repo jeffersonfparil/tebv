@@ -21,8 +21,8 @@ test_that(
         df_BLUPs = list_CRD_BLUPs$df_effects
         merged_BLUPs = merge(df_BLUPs, df_true, by="gen")
         corr = cor(merged_BLUPs$y, merged_BLUPs$y_true)
-        txtplot::txtplot(merged_BLUPs$y_true, merged_BLUPs$y, xlab="obs", ylab="pred")
         print(paste0("corr=", round(100*corr), "%"))
+        txtplot::txtplot(merged_BLUPs$y_true, merged_BLUPs$y, xlab="obs", ylab="pred")
         expect_equal(round(corr), 1)
     }
 )
@@ -46,8 +46,8 @@ test_that(
         df_BLUEs = list_CRD_BLUEs$df_effects
         merged_BLUEs = merge(df_BLUEs, df_true, by="gen")
         corr = cor(merged_BLUEs$y, merged_BLUEs$y_true)
-        txtplot::txtplot(merged_BLUEs$y_true, merged_BLUEs$y, xlab="obs", ylab="pred")
         print(paste0("corr=", round(100*corr), "%"))
+        txtplot::txtplot(merged_BLUEs$y_true, merged_BLUEs$y, xlab="obs", ylab="pred")
         expect_equal(round(corr), 1)
     }
 )
@@ -76,8 +76,8 @@ test_that(
         df_BLUPs = list_RBD_BLUPs$df_effects
         merged_BLUPs = merge(df_BLUPs, df_true, by="gen")
         corr = cor(merged_BLUPs$y, merged_BLUPs$y_true)
-        txtplot::txtplot(merged_BLUPs$y_true, merged_BLUPs$y, xlab="obs", ylab="pred")
         print(paste0("corr=", round(100*corr), "%"))
+        txtplot::txtplot(merged_BLUPs$y_true, merged_BLUPs$y, xlab="obs", ylab="pred")
         expect_equal(round(cor(merged_BLUPs$y, merged_BLUPs$y_true)), 1)
     }
 )
@@ -106,8 +106,8 @@ test_that(
         df_BLUEs = list_RBD_BLUEs$df_effects
         merged_BLUEs = merge(df_BLUEs, df_true, by="gen")
         corr = cor(merged_BLUEs$y, merged_BLUEs$y_true)
-        txtplot::txtplot(merged_BLUEs$y_true, merged_BLUEs$y, xlab="obs", ylab="pred")
         print(paste0("corr=", round(100*corr), "%"))
+        txtplot::txtplot(merged_BLUEs$y_true, merged_BLUEs$y, xlab="obs", ylab="pred")
         expect_equal(round(cor(merged_BLUEs$y, merged_BLUEs$y_true)), 1)
     }
 )
@@ -138,14 +138,12 @@ test_that(
         df_true = data.frame(gen=rownames(G), y_true=(G %*% list_Y_b_E_b_epi$b))
         ### Fit randomised complete block design in a single environment            
         list_SPAT_BLUPs = suppressWarnings(fn_GX1_SPAT_BLUPs(df=df, trait="y", id="gen", row="row", col="col", verbose=FALSE))
-        ### Print the selected/best spatial model
-        print(list_SPAT_BLUPs$model)
         ### We expect the true genotype values match closely with the BLUPs
         df_BLUPs = list_SPAT_BLUPs$df_effects
         merged_BLUPs = merge(df_BLUPs, df_true, by="gen")
         corr = cor(merged_BLUPs$y, merged_BLUPs$y_true)
-        txtplot::txtplot(merged_BLUPs$y_true, merged_BLUPs$y, xlab="obs", ylab="pred")
         print(paste0("corr=", round(100*corr), "%"))
+        txtplot::txtplot(merged_BLUPs$y_true, merged_BLUPs$y, xlab="obs", ylab="pred")
         expect_equal(round(cor(merged_BLUPs$y, merged_BLUPs$y_true)), 1)
     }
 )
@@ -180,8 +178,8 @@ test_that(
         df_BLUEs = list_SPAT_BLUEs$df_effects
         merged_BLUEs = merge(df_BLUEs, df_true, by="gen")
         corr = cor(merged_BLUEs$y, merged_BLUEs$y_true)
-        txtplot::txtplot(merged_BLUEs$y_true, merged_BLUEs$y, xlab="obs", ylab="pred")
         print(paste0("corr=", round(100*corr), "%"))
+        txtplot::txtplot(merged_BLUEs$y_true, merged_BLUEs$y, xlab="obs", ylab="pred")
         expect_equal(round(cor(merged_BLUEs$y, merged_BLUEs$y_true)), 1)
     }
 )

@@ -31,14 +31,14 @@ test_that(
         G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=n_alleles, verbose=FALSE)
         list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=n_alleles, dist_effects="norm", n_effects=10, h2=0.75, pheno_reps=pheno_reps, verbose=FALSE)
         Y = list_Y_b_E_b_epi$Y
-        df = data.frame(y=as.vector(Y), id=rep(rownames(G), times=pheno_reps))
+        df = data.frame(y=as.vector(Y), id=as.factor(rep(rownames(G), times=pheno_reps)))
         ### True genotype values
         df_true = data.frame(id=rownames(G), y_true=(G %*% list_Y_b_E_b_epi$b))
         ### Fit using mmec and mmer
-        mod_henderson_1 = tryCatch(suppressWarnings(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=FALSE)), error=function(e){NA})
-        mod_henderson_2 = tryCatch(suppressWarnings(sommer::mmec(y ~ 0, random = ~ id, data=df, dateWarning=FALSE, verbose=FALSE)), error=function(e){NA})
-        mod_newtonrap_1 = tryCatch(suppressWarnings(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=FALSE)), error=function(e){NA})
-        mod_newtonrap_2 = tryCatch(suppressWarnings(sommer::mmer(y ~ 0, random = ~ id, data=df, dateWarning=FALSE, verbose=FALSE)), error=function(e){NA})
+        mod_henderson_1 = suppressWarnings(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=FALSE))
+        mod_henderson_2 = suppressWarnings(sommer::mmec(y ~ 1 + id, data=df, dateWarning=FALSE, verbose=FALSE))
+        mod_newtonrap_1 = suppressWarnings(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=FALSE))
+        mod_newtonrap_2 = suppressWarnings(sommer::mmer(y ~ 1 + id, data=df, dateWarning=FALSE, verbose=FALSE))
         ### Compare and extract BLUPs
         list_best_mods = fn_find_best_fit_within_algo(
             list_mod_henderson=list(mod_henderson_1, mod_henderson_2), 
@@ -81,38 +81,38 @@ test_that(
         verbose = FALSE
         ### List of various models
         vec_mod = suppressWarnings(list(
-            mod_henderson_1 = sommer::mmec(y ~ 1, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_2 = sommer::mmec(y ~ 1 + id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_3 = sommer::mmec(y ~ 1 + block, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_4 = sommer::mmec(y ~ 1, random = ~ id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_5 = sommer::mmec(y ~ 1 + id, random = ~ block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_6 = sommer::mmec(y ~ 1 + id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_7 = sommer::mmec(y ~ 1, random = ~id + row + col + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_8 = sommer::mmec(y ~ 1, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_9 = sommer::mmec(y ~ 1 + row + col, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_10 = sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_11 = sommer::mmec(y ~ 1 + row_factor + col_factor + row_factor:col_factor, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_12 = sommer::mmec(y ~ 1, random = ~id + row + col + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_13 = sommer::mmec(y ~ 1, random = ~id + row_factor + col_factor + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_14 = sommer::mmec(y ~ 1 + row_factor + col_factor, random = ~id + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_15 = sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_16 = sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_1 = sommer::mmer(y ~ 1, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_2 = sommer::mmer(y ~ 1 + id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_3 = sommer::mmer(y ~ 1 + block, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_4 = sommer::mmer(y ~ 1, random = ~ id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_5 = sommer::mmer(y ~ 1 + id, random = ~ block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_6 = sommer::mmer(y ~ 1 + id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_7 = sommer::mmer(y ~ 1, random = ~id + row + col + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_8 = sommer::mmer(y ~ 1, random = ~id + row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_9 = sommer::mmer(y ~ 1 + row_factor + col_factor, random = ~id + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_10 = sommer::mmer(y ~ 1 + row + col + row:col, random = ~id + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_11 = sommer::mmer(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_12 = sommer::mmer(y ~ 1 + id, random = ~row + col + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_13 = sommer::mmer(y ~ 1 + id, random = ~row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_14 = sommer::mmer(y ~ 1 + id + row_factor + col_factor, random = ~sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_15 = sommer::mmer(y ~ 1 + id + row + col + row:col, random = ~sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_16 = sommer::mmer(y ~ 1 + id + row + col + row:col, random = ~row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose)
+            mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1 + id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + block, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1, random = ~ id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + id, random = ~ block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_6 = tryCatch(sommer::mmec(y ~ 1 + id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_7 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row + col + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_8 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_9 = tryCatch(sommer::mmec(y ~ 1 + row + col, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_10 = tryCatch(sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_11 = tryCatch(sommer::mmec(y ~ 1 + row_factor + col_factor + row_factor:col_factor, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_12 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row + col + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_13 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row_factor + col_factor + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_14 = tryCatch(sommer::mmec(y ~ 1 + row_factor + col_factor, random = ~id + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_15 = tryCatch(sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_16 = tryCatch(sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + sommer::spl2Dc(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_1 = tryCatch(sommer::mmer(y ~ 1, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1 + id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_3 = tryCatch(sommer::mmer(y ~ 1 + block, random = ~ id, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_4 = tryCatch(sommer::mmer(y ~ 1, random = ~ id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_5 = tryCatch(sommer::mmer(y ~ 1 + id, random = ~ block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_6 = tryCatch(sommer::mmer(y ~ 1 + id + block, rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_7 = tryCatch(sommer::mmer(y ~ 1, random = ~id + row + col + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_8 = tryCatch(sommer::mmer(y ~ 1, random = ~id + row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_9 = tryCatch(sommer::mmer(y ~ 1 + row_factor + col_factor, random = ~id + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_10 = tryCatch(sommer::mmer(y ~ 1 + row + col + row:col, random = ~id + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_11 = tryCatch(sommer::mmer(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_12 = tryCatch(sommer::mmer(y ~ 1 + id, random = ~row + col + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_13 = tryCatch(sommer::mmer(y ~ 1 + id, random = ~row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_14 = tryCatch(sommer::mmer(y ~ 1 + id + row_factor + col_factor, random = ~sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_15 = tryCatch(sommer::mmer(y ~ 1 + id + row + col + row:col, random = ~sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_16 = tryCatch(sommer::mmer(y ~ 1 + id + row + col + row:col, random = ~row_factor + col_factor + sommer::spl2Da(x.coord=df$col, y.coord=df$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
         ))
         ### Assess fit
         for (i in 1:length(vec_mod)) {
@@ -142,8 +142,8 @@ test_that(
             }
             merged_effects = merge(df_effects, df_true, by="id")
             corr = cor(merged_effects$y, merged_effects$y_true)
-            txtplot::txtplot(merged_effects$y_true, merged_effects$y, xlab="obs", ylab="pred")
             print(paste0("corr=", round(100*corr), "%"))
+            txtplot::txtplot(merged_effects$y_true, merged_effects$y, xlab="obs", ylab="pred")
             expect_equal(corr > 0, TRUE)
         }
     }
@@ -195,43 +195,43 @@ test_that(
         tolParInv = 0.01
         verbose = FALSE
         vec_mod = suppressWarnings(list(
-            mod_newtonrap_1 = sommer::mmer(y ~ 1 + environ, random= ~ environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_2 = sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_3 = sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_4 = sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_5 = sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
+            mod_newtonrap_1 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_3 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_4 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_5 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
             mod_newtonrap_6 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
-            mod_newtonrap_7 = sommer::mmer(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_8 = sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_9 = sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_10 = sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_11 = sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id) + vsr(usr(environ), block), rcov= ~ units, nIters=100, tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose),
+            mod_newtonrap_7 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_8 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_9 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_10 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_11 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id) + vsr(usr(environ), block), rcov= ~ units, nIters=100, tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
             mod_newtonrap_12 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id) + vsr(usr(environ), block), rcov= ~ units, nIters=100, tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
-            mod_newtonrap_13 = sommer::mmer(y ~ 1 + environ, random= ~ environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_14 = sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
+            mod_newtonrap_13 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_14 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
             mod_newtonrap_15 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), row_factor:col_factor),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
-            mod_newtonrap_16 = sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + vsr(usr(environ), row_factor:col_factor),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_17 = sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_18 = sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_newtonrap_19 = sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_1 = sommer::mmec(y ~ 1 + environ, random= ~ environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_2 = sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_3 = sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_4 = sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_5 = sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=2)), isc(id)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_6 = sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=1)), isc(id)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_7 = sommer::mmec(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_8 = sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_9 = sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_10 = sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_11 = sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=2)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_12 = sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=1)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_13 = sommer::mmec(y ~ 1 + environ, random= ~ environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_14 = sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
+            mod_newtonrap_16 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + vsr(usr(environ), row_factor:col_factor),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_17 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_18 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_newtonrap_19 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=2)), isc(id)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_6 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=1)), isc(id)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_7 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_8 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_9 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_10 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_11 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=2)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_12 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=1)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=1, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_13 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_14 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
             mod_henderson_15 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor:col_factor)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
             mod_henderson_16 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor)) + vsc(usc(environ), isc(col_factor)) + vsc(usc(environ), isc(row_factor:col_factor)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
-            mod_henderson_17 = sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
-            mod_henderson_18 = sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose),
+            mod_henderson_17 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
+            mod_henderson_18 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA}),
             mod_henderson_19 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor)) + vsc(usc(environ), isc(col_factor)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
         ))
         ### Assess fit
