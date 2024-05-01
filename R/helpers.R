@@ -143,6 +143,7 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
     # extract_BLUPs=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.na(mod_henderson[1]) & is.na(mod_newtonrap[1])) {
+        print("Error: unable to fit any model.")
         return(NA)
     }
     ### Select the model that is non-missing or have better fit
@@ -169,27 +170,41 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
     }
     ### Extract BLUPs or BLUEs
     if (fitstats_comparison >= 0.5) {
+        ##########################
+        ### HENDERSON'S MODELS ###
+        ##########################
         algorithm = "Henderson"
         fitstats = fitstats_henderson
         model = mod_henderson$args
+        fit = mod_henderson
         ### Sanity check
         if ((sum(grepl("id", model)) == 0) | (sum(grepl("y", model$fixed)) == 0)) {
             print("Please use conventional variable names in the input data frame, i.e. y for the response variables and id for the entry or genotype names.")
             return(NA)
         }
+        vec_id = as.character(unique(mod_henderson$data$id))
+        vec_environ = as.character(unique(mod_henderson$data$environ))
+        vec_environ_x_id = as.character(unique(paste0(mod_henderson$data$environ, ":", mod_henderson$data$id)))
+        n_ids = length(vec_id)
+        n_environs = length(vec_environ)
         if (extract_BLUPs) {
-            n_ids = length(unique(mod_henderson$data$id))
-            n_environs = length(unique(mod_henderson$data$environ))
+            #####################
+            ### EXTRACT BLUPS ###
+            #####################
             u = mod_henderson$u[,1]
-            if (!grepl("rrc\\(environ, id, y, nPC", paste(model$random, collapse=""))) {
+            idx = which(names(u) %in% c(vec_id, vec_environ_x_id))
+            u = u[idx]
+            if (!grepl("rrc\\(environ, id, y, nPC", paste(model$random, collapse="")) & grepl("vsc\\(usc\\(environ\\), isc\\(id\\)", paste(model$random, collapse=""))) {
                 if (length(u) == (n_ids*n_environs)) {
                     names(u) = paste0(rep(unique(mod_henderson$data$environ), each=n_ids), ":", names(u))
-                }
-                if (length(u) == (n_ids + (n_ids*n_environs))) {
+                } else  if (length(u) == (n_ids + (n_ids*n_environs))) {
                     names(u) = paste0(rep(c("", as.character(unique(mod_henderson$data$environ))), each=n_ids), ":", names(u))
                     names(u) = gsub("^:", "", names(u))
+                } else {
+                    print("Error: unaccounted for number of effects.")
+                    return(NA)
                 }
-            } else {
+            } else if (grepl("rrc\\(environ, id, y, nPC", paste(model$random, collapse=""))) {
                 n_PCs = as.numeric(gsub(" ", "", unlist(strsplit(unlist(strsplit(paste(model$random, collapse=""), "nPC ="))[2], ")"))[1]))
                 if (length(u) == (n_ids*n_PCs)) {
                     names(u) = paste0(rep(paste0("PC", 1:n_PCs), each=n_ids), ":", names(u))
@@ -199,8 +214,17 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
                     names(u) = gsub("^:", "", names(u))
                 }
             }
+            if (length(u)==0) {
+                return(NA)
+            }
+            if (is.null(u[1])) {
+                return(NA)
+            }
             V = mod_henderson$sigma ### named vector or matrix for some reason.... (TODO get to the bottom of this!)
         } else {
+            #####################
+            ### EXTRACT BLUES ###
+            #####################
             ### NOTE: BLUEs will never be used for multi-environmental trial analyses
             ### Add the intercept
             intercept = mod_henderson$b[1,1]
@@ -217,29 +241,58 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
             rownames(V) = colnames(V) = names(b)
         }
     } else {
+        #############################
+        ### NEWTON-RAPHSON MODELS ###
+        #############################
         algorithm = "Newton-Raphson"
         fitstats = fitstats_newtonrap
         model = mod_newtonrap$call
+        fit = mod_newtonrap
         ### Sanity check
         if ((sum(grepl("id", model)) == 0) | (sum(grepl("y", model$fixed)) == 0)) {
             print("Please use conventional variable names in the input data frame, i.e. y for the response variables and id for the entry or genotype names.")
             return(NA)
         }
+        n_ids = length(unique(mod_newtonrap$data$id))
+        n_environs = length(unique(mod_newtonrap$data$environ))
         if (extract_BLUPs) {
+            #####################
+            ### EXTRACT BLUPS ###
+            #####################
             if (!grepl("rrc\\(environ, id, y, nPC", paste(model$random, collapse=""))) {
                 if (grepl("environ:id", paste(model$fixed, collapse="")) | grepl("environ:id", paste(model$random, collapse=""))) {
                     u = unlist(mod_newtonrap$U$`environ:id`$y)
                     names(u) = gsub("^environ", "", names(u))
                     names(u) = gsub(":id", ":", names(u))
                     V = mod_newtonrap$VarU$`environ:id`$y
+                } else if (grepl("vsr\\(usr\\(environ\\), id\\)", paste(model$random, collapse=""))) {
+                    idx = intersect(grep("id$", names(mod_newtonrap$U)), grep("[^:]*:[^:]*:", names(mod_newtonrap$U), invert=TRUE))
+                    u = c()
+                    for (i in idx) {
+                        u_tmp = mod_newtonrap$U[[i]]$y
+                        names(u_tmp) = paste0(gsub("id$", "", names(mod_newtonrap$U)[i]), names(u_tmp))
+                        u = c(u, u_tmp)
+                    }
+                    V = matrix(0, nrow=length(u), ncol=length(u))
+                    counter = 1
+                    for (i in idx) {
+                        V_tmp = mod_newtonrap$VarU[[i]]$y
+                        idx_ini = (counter - 1) * nrow(V_tmp) + 1
+                        idx_fin = (counter - 0) * nrow(V_tmp)
+                        V[idx_ini:idx_fin, idx_ini:idx_fin] = V_tmp
+                    }
                 } else {
                     u = unlist(mod_newtonrap$U$id$y)
+                    if (length(u)==0) {
+                        return(NA)
+                    }
+                    if (is.null(u[1])) {
+                        return(NA)
+                    }
                     names(u) = gsub("^id", "", names(u))
                     V = mod_newtonrap$VarU$id$y
                 }
-                rownames(V) = colnames(V) = names(u)
             } else {
-                n_ids = length(unique(mod_newtonrap$data$id))
                 n_PCs = as.numeric(gsub(" ", "", unlist(strsplit(unlist(strsplit(paste(model$random, collapse=""), "nPC ="))[2], ")"))[1]))
                 u = c()
                 for (pc in 1:n_PCs) {
@@ -252,13 +305,25 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
                     names(u) = paste0(rep(c("", as.character(paste0("PC", 1:n_PCs))), each=n_ids), ":", names(u))
                     names(u) = gsub("^:", "", names(u))
                 }
+                V = matrix(0, nrow=length(u), ncol=length(u))
+                counter = 1
+                for (pc in 1:n_PCs) {
+                    V_tmp = eval(parse(text=paste0("unlist(mod_newtonrap$VarU$`PC", pc, ":id`$y)")))
+                    idx_ini = (counter - 1) * nrow(V_tmp) + 1
+                    idx_fin = (counter - 0) * nrow(V_tmp)
+                    V[idx_ini:idx_fin, idx_ini:idx_fin] = V_tmp
+                }
             }
             if (is.null(u)) {
                 print("No random effects corresponding to the entries found.")
                 print("Please consider using `extract_BLUPs=FALSE`.")
                 return(NA)
             }
+            rownames(V) = colnames(V) = names(u)
         } else {
+            #####################
+            ### EXTRACT BLUES ###
+            #####################
             ### NOTE: BLUEs will never be used for multi-environmental trial analyses
             ### Add the intercept
             intercept = mod_newtonrap$Beta$Estimate[1]
@@ -280,8 +345,82 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
     AIC = fitstats$AIC
     BIC = fitstats$BIC
     if (extract_BLUPs) {
-        return(list(u=u, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model))
+        return(list(u=u, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model, fit=fit))
     } else {
-        return(list(b=b, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model))
+        return(list(b=b, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model, fit=fit))
     }
+}
+
+### Extract data frame of GxE breeding values
+fn_extract_gxe_breeding_values = function(list_u_V_fitstats) {
+    if (is.na(list_u_V_fitstats[1])) {
+        print("Error: unable to fit any model.")
+        return(NA)
+    }
+    vec_id = unique(list_u_V_fitstats$fit$data$id)
+    vec_environ = unique(list_u_V_fitstats$fit$data$environ)
+    vec_environ_x_id = unique(paste0(list_u_V_fitstats$fit$data$environ, ":", list_u_V_fitstats$fit$data$id))
+    n = length(vec_id)
+    m = length(vec_environ)
+    u = list_u_V_fitstats$u
+    if (!grepl("rrc\\(environ, id, y, nPC", paste(list_u_V_fitstats$model$random, collapse=""))) {
+        ### NOT FACTOR ANALYTIC
+        ### Retain only the id and environ:id effects
+        idx = which(names(u) %in% c(vec_id, vec_environ_x_id))
+        u = u[idx]
+        if (length(u) == (n*m)) {
+            ### ~ environ:id
+            u = u
+        } else if (length(u) == (n + (n*m))) {
+            ### ~ id + environ:id
+            u_id = u[grep(":", names(u), invert=TRUE)]
+            u = u[grep(":", names(u), invert=FALSE)]
+            for (i in 1:length(u)) {
+                # i = 1
+                idx = grep(unlist(strsplit(names(u[i]), ":"))[2], names(u_id))
+                u[i] = u_gxe[i] + u_id[idx]
+            }
+        } else {
+            print("Error: unaccounted for number of effects.")
+            return(NA)
+        }
+    } else {
+        ### FACTOR ANALYTIC
+        n_PC = as.numeric(gsub(" ", "", unlist(strsplit(unlist(strsplit(paste(list_u_V_fitstats$fit$args$random, collapse=""), "nPC ="))[2], ")"))[1]))
+        if (is.na(n_PC)) {
+            n_PC = as.numeric(gsub(" ", "", unlist(strsplit(unlist(strsplit(paste(list_u_V_fitstats$fit$call$random, collapse=""), "nPC ="))[2], ")"))[1]))
+        }
+        vec_pc_x_id = c()
+        for (i in 1:n_PC) {
+            vec_pc_x_id = c(vec_pc_x_id, paste0("PC", i, ":", vec_id))
+        }
+        idx = which(names(u) %in% c(vec_id, vec_pc_x_id))
+        u = u[idx]
+        vec_pc = unlist(lapply(strsplit(names(u), ":"), FUN=function(x){x[1]}))
+        vec_id = unlist(lapply(strsplit(names(u), ":"), FUN=function(x){x[2]}))
+        n_PC = length(unique(vec_pc))
+        FA_gamma = with(list_u_V_fitstats$fit$data, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
+        df_scores = data.frame(id=unique(vec_id))
+        for (i in 1:n_PC) {
+            # i = 1
+            idx = which(vec_pc == vec_pc[i])
+            df_scores = merge(df_scores, data.frame(id=vec_id[idx], pc=u[idx]), by="id")
+        }
+        mat_scores = as.matrix(df_scores[, 2:(n_PC+1)]); rownames(mat_scores) = df_scores$id
+        BLUPs = mat_scores %*% t(FA_gamma)
+        u = c()
+        u_names = c()
+        for (j in 1:ncol(BLUPs)) {
+            for (i in 1:nrow(BLUPs)) {
+                u = c(u, BLUPs[i, j])
+                u_names = c(u_names, paste0(colnames(BLUPs)[j], ":", rownames(BLUPs)[i]))
+            }
+        }
+        names(u) = u_names
+    }
+    vec_env = unlist(lapply(strsplit(names(u), ":"), FUN=function(x){x[1]}))
+    vec_id = unlist(lapply(strsplit(names(u), ":"), FUN=function(x){x[2]}))
+    df_BLUPs_GXE = data.frame(id=vec_id, env=vec_env, y=u)
+    rownames(df_BLUPs_GXE) = NULL
+    return(df_BLUPs_GXE)
 }
