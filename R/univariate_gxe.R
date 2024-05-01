@@ -2,7 +2,7 @@
 ### The trait values are simply aggregated using arithmetic mean and the pairwise correlations are calculated.
 fn_assess_GXE = function(df, trait="y", id="gen", env="env", verbose=FALSE) {
     ### TEST #################################################################################
-    # n = 100
+    # n = 30
     # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
     # list_df_CORR = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=5, verbose=FALSE)
     # df=list_df_CORR$df; trait="y"; id="gen"; env="env"; verbose=TRUE
@@ -71,7 +71,7 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, 
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 100
+    # n = 30
     # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
     # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=5, verbose=FALSE)
     # df = list_df_CORR_list_Y$df
@@ -155,147 +155,41 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, 
         list_mod_henderson=list(mod_henderson_1, mod_henderson_2, mod_henderson_3, mod_henderson_4, mod_henderson_5, mod_henderson_6), 
         list_mod_newtonrap=list(mod_newtonrap_1, mod_newtonrap_2, mod_newtonrap_3, mod_newtonrap_4, mod_newtonrap_5, mod_newtonrap_6),
         verbose=verbose)
-    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
-    if (is.na(list_u_fitstats[1])) {
+    list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
+    if (is.na(list_u_V_fitstats[1])) {
         print("Error: failed to fit linear mixed models.")
         return(NA)
     }
     if (verbose) {
         print(paste0("'Best fit': {", 
-            "'algorithm': '", list_u_fitstats$algorithm, "', ", 
+            "'algorithm': '", list_u_V_fitstats$algorithm, "', ", 
             "'model': {", 
-                paste(paste0("'", names(list_u_fitstats$model), "': '", list_u_fitstats$model, "', "), collapse=" "),
+                paste(paste0("'", names(list_u_V_fitstats$model), "': '", list_u_V_fitstats$model, "', "), collapse=" "),
             "}",
         "}"))
     }
-    ### Extract BLUPs per environment
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_1, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_2, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_3, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_4, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_5, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_6, verbose=verbose)
-    #    
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_1, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_2, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_3, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_4, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_5, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_6, mod_newtonrap=NA, verbose=verbose)
-    formula_random_components = paste(as.character(list_u_fitstats$model$random), collapse="")
-    vec_id = as.character(unique(df_gxe_crd$id))
-    vec_environ = as.character(unique(df_gxe_crd$environ))
-    vec_u_names = as.character(names(list_u_fitstats$u))
-    BLUPs = matrix(NA, nrow=length(vec_id), ncol=length(vec_environ))
-    rownames(BLUPs) = vec_id
-    colnames(BLUPs) = vec_environ
-    if (formula_random_components == "~environ:id") {
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if (formula_random_components == "~id + environ:id") {
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id = which(grepl(paste0("^", id_name, "$"), vec_u_names))
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id] + list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~vsc(usc(environ), isc(id))") | (formula_random_components == "~vsr(usr(environ), id)")) {
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(vec_environ, each=length(vec_id)), ":", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~id + vsc(usc(environ), isc(id))") | (formula_random_components == "~id + vsr(usr(environ), id)")) {
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(c("", vec_environ), each=length(vec_id)), ":", vec_u_names)
-            vec_u_names = gsub("^:", "", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id = which(grepl(paste0("^", id_name, "$"), vec_u_names))
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id] + list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~vsc(usc(rrc(environ, id, y, nPC = 2)), isc(id))") | (formula_random_components == "~vsr(usr(rrc(environ, id, y, nPC = 2)), id)")) {
-        n_PC = 2
-        FA_gamma = with(df_gxe_crd, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
-        scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
-        rownames(scores) = vec_id
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:n_PC) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                pc_name = paste0("PC", j)
-                idx_id_x_pc = which(grepl(paste0("^", pc_name, ":", id_name, "$"), vec_u_names))
-                scores[i, j] = list_u_fitstats$u[idx_id_x_pc]
-            }
-        }
-        BLUPs = scores %*% t(FA_gamma)
-    } else if ((formula_random_components == "~vsc(usc(rrc(environ, id, y, nPC = 1)), isc(id))") | (formula_random_components == "~vsr(usr(rrc(environ, id, y, nPC = 1)), id)")) {
-        n_PC = 1
-        FA_gamma = with(df_gxe_crd, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
-        scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
-        rownames(scores) = vec_id
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:n_PC) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                pc_name = paste0("PC", j)
-                idx_id_x_pc = which(grepl(paste0("^", pc_name, ":", id_name, "$"), vec_u_names))
-                scores[i, j] = list_u_fitstats$u[idx_id_x_pc]
-            }
-        }
-        BLUPs = scores %*% t(FA_gamma)
-    }
-    colnames(BLUPs) = paste0(trait, "_", colnames(BLUPs))
-    df_BLUPs = eval(parse(text=paste0("data.frame(", id, "=rownames(BLUPs), BLUPs)"))) ### R converts dashes into dots
-    rownames(df_BLUPs) = NULL
-    colnames(df_BLUPs)[-1] = colnames(BLUPs) ### Revert to original column names of the BLUPs
+    ### Extract breeding values per environment
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_6, mod_newtonrap=NA, verbose=verbose)
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_6, verbose=verbose)
+    df_BLUPs_GXE = fn_extract_gxe_breeding_values(list_u_V_fitstats)
     return(list(
-        df_effects=df_BLUPs,
-        loglik=list_u_fitstats$loglik,
-        AIC=list_u_fitstats$AIC,
-        BIC=list_u_fitstats$BIC,
-        algorithm=list_u_fitstats$algorithm,
-        model=list_u_fitstats$model))
+        df_effects=df_BLUPs_GXE, 
+        loglik=list_u_V_fitstats$loglik,
+        AIC=list_u_V_fitstats$AIC,
+        BIC=list_u_V_fitstats$BIC,
+        algorithm=list_u_V_fitstats$algorithm,
+        model=list_u_V_fitstats$model,
+        V=list_u_V_fitstats$V))
 }
 
 ## Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
 ## assuming a randomised complete block design (RCBD; each block is a complete replication of all genotypes) in multiple environments.
 ## We use this design when we expect heterogeneity along a single direction in each trial area, e.g. field trial along a slope.
-fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE) {
+fn_GXE_RBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 100
+    # n = 30
     # n_blocks = 5
     # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
     # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=n_blocks, verbose=FALSE)
@@ -326,23 +220,23 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
         return(NA)
     }
     ### Create consistently named response and explanatory variables for code readability below
-    df_gxe_rcbd = data.frame(
+    df_gxe_rbd = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
         id = eval(parse(text=paste0("df$", id))), 
         environ = eval(parse(text=paste0("df$", env))),
         block = eval(parse(text=paste0("df$", block)))
     )
-    if (sum(!is.na(df_gxe_rcbd$y)) == 0) {
+    if (sum(!is.na(df_gxe_rbd$y)) == 0) {
         print(paste0("Error: all data are missing for trait: ", trait, "."))
         return(NA)
     }
-    mat_design_matrix_rcbd_gxe = stats::model.matrix(y ~ id:environ:block, data=df_gxe_rcbd)
-    if (skip_algo_based_on_dimensions & (nrow(mat_design_matrix_rcbd_gxe) < ncol(mat_design_matrix_rcbd_gxe))) {
+    mat_design_matrix_rbd_gxe = stats::model.matrix(y ~ id:environ:block, data=df_gxe_rbd)
+    if (skip_algo_based_on_dimensions & (nrow(mat_design_matrix_rbd_gxe) < ncol(mat_design_matrix_rbd_gxe))) {
         ### if n < p (more coefficients to predict) then use Newton-Raphson transformations via mmer()
         skip_newtonrap = FALSE
         skip_henderson = TRUE
         mod_henderson_1 = mod_henderson_2 = mod_henderson_3 = mod_henderson_4 = mod_henderson_5 = mod_henderson_6 = NA
-    } else if (skip_algo_based_on_dimensions & (nrow(mat_design_matrix_rcbd_gxe) >= ncol(mat_design_matrix_rcbd_gxe))) {
+    } else if (skip_algo_based_on_dimensions & (nrow(mat_design_matrix_rbd_gxe) >= ncol(mat_design_matrix_rbd_gxe))) {
         ### if n >= p (less coefficients to predict) then use Henderson's mixed model equations via mmec()
         skip_newtonrap = TRUE
         skip_henderson = FALSE
@@ -356,17 +250,17 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
             print("Fitting models via Newton-Raphson algorithm")
         }
         ###m Newton-Raphson models
-        mod_newtonrap_1 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_1 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_3 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_3 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_4 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_4 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), block), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_5 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id) + vsr(usr(environ), block), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_5 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=2)), id) + vsr(usr(environ), block), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_6 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=1)), id) + vsr(usr(environ), block), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_6 = tryCatch(sommer::mmer(y ~ 1 + environ, random = ~ vsr(usr(rrc(environ, id, y, nPC=1)), id) + vsr(usr(environ), block), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
     }
     if (!skip_henderson) {
@@ -374,17 +268,17 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
             print("Fitting models via Henderson's mixed model equations")
         }
         ### Henderson's models
-        mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id + environ:block, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=2)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=2)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_6 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=1)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rcbd, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_6 = tryCatch(sommer::mmec(y ~ 1 + environ, random = ~ vsc(usc(rrc(environ, id, y, nPC=1)), isc(id)) + vsc(usc(environ), isc(block)), rcov= ~ units, nIters=100, tolParInv=tolParInv, data=df_gxe_rbd, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
     }
     ### Identify the best model
@@ -392,133 +286,30 @@ fn_GXE_RCBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", to
         list_mod_henderson=list(mod_henderson_1, mod_henderson_2, mod_henderson_3, mod_henderson_4, mod_henderson_5, mod_henderson_6), 
         list_mod_newtonrap=list(mod_newtonrap_1, mod_newtonrap_2, mod_newtonrap_3, mod_newtonrap_4, mod_newtonrap_5, mod_newtonrap_6),
         verbose=verbose)
-    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
-    if (is.na(list_u_fitstats[1])) {
+    list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
+    if (is.na(list_u_V_fitstats[1])) {
         print("Error: failed to fit linear mixed models.")
         return(NA)
     }
     if (verbose) {
         print(paste0("'Best fit': {", 
-            "'algorithm': '", list_u_fitstats$algorithm, "', ", 
+            "'algorithm': '", list_u_V_fitstats$algorithm, "', ", 
             "'model': {", 
-                paste(paste0("'", names(list_u_fitstats$model), "': '", list_u_fitstats$model, "', "), collapse=" "),
+                paste(paste0("'", names(list_u_V_fitstats$model), "': '", list_u_V_fitstats$model, "', "), collapse=" "),
             "}",
         "}"))
     }
     ### Extract BLUPs per environment
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_1, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_2, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_3, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_4, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_5, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_6, verbose=verbose)
-    #    
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_1, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_2, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_3, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_4, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_5, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_6, mod_newtonrap=NA, verbose=verbose)
-    formula_random_components = paste(as.character(list_u_fitstats$model$random), collapse="")
-    vec_id = as.character(unique(df_gxe_rcbd$id))
-    vec_environ = as.character(unique(df_gxe_rcbd$environ))
-    vec_u_names = as.character(names(list_u_fitstats$u))
-    BLUPs = matrix(NA, nrow=length(vec_id), ncol=length(vec_environ))
-    rownames(BLUPs) = vec_id
-    colnames(BLUPs) = vec_environ
-    if (formula_random_components == "~environ:id + environ:block") {
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if (formula_random_components == "~id + environ:id + environ:block") {
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id = which(grepl(paste0("^", id_name, "$"), vec_u_names))
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id] + list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~vsr(usr(environ), id) + vsr(usr(environ), block)")) {
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(vec_environ, each=length(vec_id)), ":", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~id + vsr(usr(environ), id) + vsr(usr(environ), block)")) {
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(c("", vec_environ), each=length(vec_id)), ":", vec_u_names)
-            vec_u_names = gsub("^:", "", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id = which(grepl(paste0("^", id_name, "$"), vec_u_names))
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id] + list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~vsc(usc(rrc(environ, id, y, nPC = 2)), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~vsr(usr(rrc(environ, id, y, nPC = 2)), id) + vsr(usr(environ), block)")) {
-        n_PC = 2
-        FA_gamma = with(df_gxe_rcbd, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
-        scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
-        rownames(scores) = vec_id
-        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        for (i in 1:length(vec_id)) {
-            for (j in 1:n_PC) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                pc_name = paste0("PC", j)
-                idx_id_x_pc = which(grepl(paste0("^", pc_name, ":", id_name, "$"), vec_u_names))
-                scores[i, j] = list_u_fitstats$u[idx_id_x_pc]
-            }
-        }
-        BLUPs = scores %*% t(FA_gamma)
-    } else if ((formula_random_components == "~vsc(usc(rrc(environ, id, y, nPC = 1)), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~vsr(usr(rrc(environ, id, y, nPC = 1)), id) + vsr(usr(environ), block)")) {
-        n_PC = 1
-        FA_gamma = with(df_gxe_rcbd, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
-        scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
-        rownames(scores) = vec_id
-        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        for (i in 1:length(vec_id)) {
-            for (j in 1:n_PC) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                pc_name = paste0("PC", j)
-                idx_id_x_pc = which(grepl(paste0("^", pc_name, ":", id_name, "$"), vec_u_names))
-                scores[i, j] = list_u_fitstats$u[idx_id_x_pc]
-            }
-        }
-        BLUPs = scores %*% t(FA_gamma)
-    }
-    colnames(BLUPs) = paste0(trait, "_", colnames(BLUPs))
-    df_BLUPs = eval(parse(text=paste0("data.frame(", id, "=rownames(BLUPs), BLUPs)"))) ### R converts dashes into dots
-    rownames(df_BLUPs) = NULL
-    colnames(df_BLUPs)[-1] = colnames(BLUPs) ### Revert to original column names of the BLUPs
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_5, verbose=verbose)
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_6, mod_newtonrap=NA, verbose=verbose)
+    df_BLUPs_GXE = fn_extract_gxe_breeding_values(list_u_V_fitstats)
     return(list(
-        df_effects=df_BLUPs,
-        loglik=list_u_fitstats$loglik,
-        AIC=list_u_fitstats$AIC,
-        BIC=list_u_fitstats$BIC,
-        algorithm=list_u_fitstats$algorithm,
-        model=list_u_fitstats$model))
+        df_effects=df_BLUPs_GXE,
+        loglik=list_u_V_fitstats$loglik,
+        AIC=list_u_V_fitstats$AIC,
+        BIC=list_u_V_fitstats$BIC,
+        algorithm=list_u_V_fitstats$algorithm,
+        model=list_u_V_fitstats$model))
 }
 
 ## Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
@@ -528,10 +319,10 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 100
+    # n = 30
     # n_reps = 5
     # n_rows = 10
-    # n_cols = ceiling(n*n_reps / n_rows)
+    # n_cols = n*n_reps / n_rows
     # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
     # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=n_reps, verbose=FALSE)
     # df = list_df_CORR_list_Y$df
@@ -611,15 +402,15 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
             error=function(e){NA})
         mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_3 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), row_factor:col_factor), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_3 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + vsr(usr(environ), row_factor:col_factor),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_4 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + vsr(usr(environ), row_factor:col_factor), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_4 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + vsr(usr(environ), row_factor:col_factor),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_5 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_5 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_6 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_6 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_newtonrap_7 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_newtonrap_7 = tryCatch(sommer::mmer(y ~ 1 + environ, random= ~ id + vsr(usr(environ), id) + vsr(usr(environ), row_factor) + vsr(usr(environ), col_factor) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
     }
     if (!skip_henderson) {
@@ -631,19 +422,15 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
             error=function(e){NA})
         mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + environ:id + environ:row_factor:col_factor, rcov= ~ units, tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor:col_factor)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor:col_factor)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor)) + vsc(usc(environ), isc(col_factor)) + vsc(usc(environ), isc(row_factor:col_factor)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor)) + vsc(usc(environ), isc(col_factor)) + vsc(usc(environ), isc(row_factor:col_factor)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        
-        
-        
-        
-        mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ vsc(usc(environ), isc(id)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_6 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_6 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
-        mod_henderson_7 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor)) + vsc(usc(environ), isc(col_factor)) + sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
+        mod_henderson_7 = tryCatch(sommer::mmec(y ~ 1 + environ, random= ~ id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(row_factor)) + vsc(usc(environ), isc(col_factor)) + sommer::spl2Dc(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)),  rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df_gxe_spat, dateWarning=FALSE, verbose=verbose),
             error=function(e){NA})
     }
     ### Identify the best model
@@ -651,131 +438,28 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
         list_mod_henderson=list(mod_henderson_1, mod_henderson_2, mod_henderson_3, mod_henderson_4, mod_henderson_5, mod_henderson_6), 
         list_mod_newtonrap=list(mod_newtonrap_1, mod_newtonrap_2, mod_newtonrap_3, mod_newtonrap_4, mod_newtonrap_5, mod_newtonrap_6),
         verbose=verbose)
-    list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
-    if (is.na(list_u_fitstats[1])) {
+    list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
+    if (is.na(list_u_V_fitstats[1])) {
         print("Error: failed to fit linear mixed models.")
         return(NA)
     }
     if (verbose) {
         print(paste0("'Best fit': {", 
-            "'algorithm': '", list_u_fitstats$algorithm, "', ", 
+            "'algorithm': '", list_u_V_fitstats$algorithm, "', ", 
             "'model': {", 
-                paste(paste0("'", names(list_u_fitstats$model), "': '", list_u_fitstats$model, "', "), collapse=" "),
+                paste(paste0("'", names(list_u_V_fitstats$model), "': '", list_u_V_fitstats$model, "', "), collapse=" "),
             "}",
         "}"))
     }
     ### Extract BLUPs per environment
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_1, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_2, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_3, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_4, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_5, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_6, verbose=verbose)
-    #    
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_1, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_2, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_3, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_4, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_5, mod_newtonrap=NA, verbose=verbose)
-    # list_u_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_6, mod_newtonrap=NA, verbose=verbose)
-    formula_random_components = paste(as.character(list_u_fitstats$model$random), collapse="")
-    vec_id = as.character(unique(df_gxe_spat$id))
-    vec_environ = as.character(unique(df_gxe_spat$environ))
-    vec_u_names = as.character(names(list_u_fitstats$u))
-    BLUPs = matrix(NA, nrow=length(vec_id), ncol=length(vec_environ))
-    rownames(BLUPs) = vec_id
-    colnames(BLUPs) = vec_environ
-    if (formula_random_components == "~environ:id + environ:block") {
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if (formula_random_components == "~id + environ:id + environ:block") {
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id = which(grepl(paste0("^", id_name, "$"), vec_u_names))
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id] + list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~vsr(usr(environ), id) + vsr(usr(environ), block)")) {
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(vec_environ, each=length(vec_id)), ":", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~id + vsc(usc(environ), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~id + vsr(usr(environ), id) + vsr(usr(environ), block)")) {
-        if (list_u_fitstats$algorithm == "Henderson") {
-            vec_u_names = paste0(rep(c("", vec_environ), each=length(vec_id)), ":", vec_u_names)
-            vec_u_names = gsub("^:", "", vec_u_names)
-        }
-        for (i in 1:length(vec_id)) {
-            for (j in 1:length(vec_environ)) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                environ_name = vec_environ[j]
-                idx_id = which(grepl(paste0("^", id_name, "$"), vec_u_names))
-                idx_id_x_environ = which(grepl(paste0("^", environ_name, ":", id_name, "$"), vec_u_names))
-                BLUPs[i, j] = list_u_fitstats$u[idx_id] + list_u_fitstats$u[idx_id_x_environ]
-            }
-        }
-    } else if ((formula_random_components == "~vsc(usc(rrc(environ, id, y, nPC = 2)), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~vsr(usr(rrc(environ, id, y, nPC = 2)), id) + vsr(usr(environ), block)")) {
-        n_PC = 2
-        FA_gamma = with(df_gxe_spat, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
-        scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
-        rownames(scores) = vec_id
-        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        for (i in 1:length(vec_id)) {
-            for (j in 1:n_PC) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                pc_name = paste0("PC", j)
-                idx_id_x_pc = which(grepl(paste0("^", pc_name, ":", id_name, "$"), vec_u_names))
-                scores[i, j] = list_u_fitstats$u[idx_id_x_pc]
-            }
-        }
-        BLUPs = scores %*% t(FA_gamma)
-    } else if ((formula_random_components == "~vsc(usc(rrc(environ, id, y, nPC = 1)), isc(id)) + vsc(usc(environ), isc(block))") | (formula_random_components == "~vsr(usr(rrc(environ, id, y, nPC = 1)), id) + vsr(usr(environ), block)")) {
-        n_PC = 1
-        FA_gamma = with(df_gxe_spat, sommer::rrc(timevar=environ, idvar=id, response=y, nPC=n_PC, returnGamma = TRUE))$Gamma
-        scores = matrix(NA, nrow=length(vec_id), ncol=n_PC)
-        rownames(scores) = vec_id
-        vec_u_names = paste0(rep(paste0("PC", 1:n_PC), each=length(vec_id)), ":", vec_u_names)
-        for (i in 1:length(vec_id)) {
-            for (j in 1:n_PC) {
-                # i = 1; j = 2
-                id_name = vec_id[i]
-                pc_name = paste0("PC", j)
-                idx_id_x_pc = which(grepl(paste0("^", pc_name, ":", id_name, "$"), vec_u_names))
-                scores[i, j] = list_u_fitstats$u[idx_id_x_pc]
-            }
-        }
-        BLUPs = scores %*% t(FA_gamma)
-    }
-    colnames(BLUPs) = paste0(trait, "_", colnames(BLUPs))
-    df_BLUPs = eval(parse(text=paste0("data.frame(", id, "=rownames(BLUPs), BLUPs)"))) ### R converts dashes into dots
-    rownames(df_BLUPs) = NULL
-    colnames(df_BLUPs)[-1] = colnames(BLUPs) ### Revert to original column names of the BLUPs
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap_3, verbose=verbose)
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson_6, mod_newtonrap=NA, verbose=verbose)
+    df_BLUPs_GXE = fn_extract_gxe_breeding_values(list_u_V_fitstats)
     return(list(
-        df_effects=df_BLUPs,
-        loglik=list_u_fitstats$loglik,
-        AIC=list_u_fitstats$AIC,
-        BIC=list_u_fitstats$BIC,
-        algorithm=list_u_fitstats$algorithm,
-        model=list_u_fitstats$model))
+        df_effects=df_BLUPs_GXE,
+        loglik=list_u_V_fitstats$loglik,
+        AIC=list_u_V_fitstats$AIC,
+        BIC=list_u_V_fitstats$BIC,
+        algorithm=list_u_V_fitstats$algorithm,
+        model=list_u_V_fitstats$model))
 }

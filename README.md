@@ -58,3 +58,5 @@ See the main tests function and each Rscript for individual unit tests:
 devtools::check()
 
 ```
+
+Test new models in [`tests/testthat/test-helpers.R`](tests/testthat/test-helpers.R) and adjust parsing accordingly via: [`R/helpers.R::fn_henderson_vs_newtonraphson_fit()`](R/helpers.R) 

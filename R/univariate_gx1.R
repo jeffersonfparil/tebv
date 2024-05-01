@@ -330,19 +330,19 @@ fn_GX1_SPAT_BLUPs = function(df, trait="y", id="gen", row="row", col="col", verb
     }
     df_spat$row_factor = as.factor(df_spat$row)
     df_spat$col_factor = as.factor(df_spat$col)
-    ### Fit 5 models per algorithm
-    mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row + col + row_factor:col_factor, rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
-        error=function(e){NA})
-    mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
-        error=function(e){NA})
-    mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + row + col, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
-        error=function(e){NA})
-    mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
-        error=function(e){NA})
-    mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + row_factor + col_factor + row_factor:col_factor, random = ~id + row_factor + col_factor + row_factor:col_factor, rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
-        error=function(e){NA})
     n_rows = nlevels(df_spat$row_factor)
     n_cols = nlevels(df_spat$col_factor)
+    ### Fit 5 models per algorithm
+    mod_henderson_1 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row + col + sommer::spl2Dc(x.coord=df_spat$col, y.coord=df_spat$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
+        error=function(e){NA})
+    mod_henderson_2 = tryCatch(sommer::mmec(y ~ 1, random = ~id + row_factor + col_factor + sommer::spl2Dc(x.coord=df_spat$col, y.coord=df_spat$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
+        error=function(e){NA})
+    mod_henderson_3 = tryCatch(sommer::mmec(y ~ 1 + row_factor + col_factor, random = ~id + sommer::spl2Dc(x.coord=df_spat$col, y.coord=df_spat$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
+        error=function(e){NA})
+    mod_henderson_4 = tryCatch(sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + sommer::spl2Dc(x.coord=df_spat$col, y.coord=df_spat$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
+        error=function(e){NA})
+    mod_henderson_5 = tryCatch(sommer::mmec(y ~ 1 + row + col + row:col, random = ~id + row_factor + col_factor + sommer::spl2Dc(x.coord=df_spat$col, y.coord=df_spat$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
+        error=function(e){NA})
     mod_newtonrap_1 = tryCatch(sommer::mmer(y ~ 1, random = ~id + row + col + sommer::spl2Da(x.coord=df_spat$col, y.coord=df_spat$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
         error=function(e){NA})
     mod_newtonrap_2 = tryCatch(sommer::mmer(y ~ 1, random = ~id + row_factor + col_factor + sommer::spl2Da(x.coord=df_spat$col, y.coord=df_spat$row, nsegments=c(n_cols, n_rows), degree=c(3,3)), rcov= ~ units, data=df_spat, dateWarning=FALSE, verbose=verbose),
