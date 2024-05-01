@@ -56,7 +56,17 @@ See the main tests function and each Rscript for individual unit tests:
 
 ```R
 devtools::check()
+```
 
+Or per module as:
+
+```R
+devtools::load_all()
+library(sommer)
+library(testthat)
+source("tests/testthat/test-helpers.R")
+source("tests/testthat/test-univariate_gx1.R")
+source("tests/testthat/test-univariate_gxe.R")
 ```
 
 Test new models in [`tests/testthat/test-helpers.R`](tests/testthat/test-helpers.R) and adjust parsing accordingly via: [`R/helpers.R::fn_henderson_vs_newtonraphson_fit()`](R/helpers.R) 

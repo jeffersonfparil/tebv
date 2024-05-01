@@ -98,6 +98,8 @@ test_that(
         df_row_col = expand.grid(row=1:n_rows, col=1:n_cols)
         df$row = rep(df_row_col$row, times=length(unique(df$env)))
         df$col = rep(df_row_col$col, times=length(unique(df$env)))
+        ### True genotype values
+        df_true = data.frame(id=rownames(G), y_true=(G %*% list_df_CORR_list_Y$list_Y_b_E_b_epi$b))
         ### Simulate row and column effects
         for (env in unique(df$env)) {
             vec_row_effects = rnorm(n=n_rows)
