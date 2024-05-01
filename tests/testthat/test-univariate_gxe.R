@@ -17,8 +17,8 @@ test_that(
         y = as.vector(list_df_CORR$CORR)
         idx = which(x != 1.0)
         corr = cor(x[idx], y[idx])
-        txtplot::txtplot(x[idx], y[idx])
         print(paste0("corr=", round(100*corr), "%"))
+        txtplot::txtplot(x[idx], y[idx])
         expect_equal((corr > 0.0), TRUE)
     }
 )
@@ -35,7 +35,6 @@ test_that(
         df_true = data.frame(id=rownames(G), y_true=(G %*% list_df_CORR_list_Y$list_Y_b_E_b_epi$b))
         ### Fit completely randomised design in a single environment            
         list_CRD_BLUPs = fn_GXE_CRD_BLUPs(df=list_df_CORR_list_Y$df, trait="y", id="gen", env="env", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE)
-        print(list_CRD_BLUPs)
         ### We expect the true genotype values match with the BLUPs in at least one environment
         merged_BLUPs = merge(list_CRD_BLUPs$df_effects, df_true, by="id")
         x = merged_BLUPs$y_true
@@ -43,8 +42,8 @@ test_that(
         txtplot::txtdensity(x)
         txtplot::txtdensity(y)
         corr = stats::cor.test(x, y)
-        txtplot::txtplot(x, y, xlab="obs", ylab="pred")
         print(paste0("corr = ", round(corr$estimate*100), "% (pval=", round(corr$p.value, 4), ")"))
+        txtplot::txtplot(x, y, xlab="obs", ylab="pred")
         expect_equal((corr$estimate < 0.0)[["cor"]], FALSE)
     }
 )
@@ -69,7 +68,6 @@ test_that(
         }
         ### Fit completely randomised design in a single environment            
         list_RBD_BLUPs = fn_GXE_RBD_BLUPs(df=list_df_CORR_list_Y$df, trait="y", id="gen", env="env", block="rep", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE)
-        print(list_RBD_BLUPs)
         ### We expect the true genotype values match with the BLUPs in at least one environment
         merged_BLUPs = merge(list_RBD_BLUPs$df_effects, df_true, by="id")
         x = merged_BLUPs$y_true
@@ -77,8 +75,8 @@ test_that(
         txtplot::txtdensity(x)
         txtplot::txtdensity(y)
         corr = stats::cor.test(x, y)
-        txtplot::txtplot(x, y, xlab="obs", ylab="pred")
         print(paste0("corr = ", round(corr$estimate*100), "% (pval=", round(corr$p.value, 4), ")"))
+        txtplot::txtplot(x, y, xlab="obs", ylab="pred")
         expect_equal((corr$estimate < 0.0)[["cor"]], FALSE)
     }
 )
@@ -113,7 +111,6 @@ test_that(
         }
         ### Fit completely randomised design in a single environment            
         list_SPAT_BLUPs = fn_GXE_SPAT_BLUPs(df=df, trait="y", id="gen", env="env", row="row", col="col", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE)
-        print(list_SPAT_BLUPs)
         ### We expect the true genotype values match with the BLUPs in at least one environment
         merged_BLUPs = merge(list_SPAT_BLUPs$df_effects, df_true, by="id")
         x = merged_BLUPs$y_true
@@ -121,8 +118,8 @@ test_that(
         txtplot::txtdensity(x)
         txtplot::txtdensity(y)
         corr = stats::cor.test(x, y)
-        txtplot::txtplot(x, y, xlab="obs", ylab="pred")
         print(paste0("corr = ", round(corr$estimate*100), "% (pval=", round(corr$p.value, 4), ")"))
+        txtplot::txtplot(x, y, xlab="obs", ylab="pred")
         expect_equal((corr$estimate < 0.0)[["cor"]], FALSE)
     }
 )
