@@ -463,3 +463,5 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
         algorithm=list_u_V_fitstats$algorithm,
         model=list_u_V_fitstats$model))
 }
+
+### Fit a 2-step GxE model

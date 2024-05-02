@@ -144,7 +144,7 @@ test_that(
             corr = cor(merged_effects$y, merged_effects$y_true)
             print(paste0("corr=", round(100*corr), "%"))
             txtplot::txtplot(merged_effects$y_true, merged_effects$y, xlab="obs", ylab="pred")
-            expect_equal(corr > 0, TRUE)
+            expect_equal(corr < 0, FALSE)
         }
     }
 )
