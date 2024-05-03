@@ -1,5 +1,3 @@
-library(sommer)
-
 ### We have decided to divide TOTAL_CBD such that we have 2 additional traits - 3 traits in total:
 ###     [1] original trait values, 
 ###     [2] lower range where values above the 1 becomes NA, and
