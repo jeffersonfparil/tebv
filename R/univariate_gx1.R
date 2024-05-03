@@ -1,14 +1,28 @@
-### Fit mixed models to extract the best linear unbiased predictors for the genotype values,
-### assuming a completely randomised design (CRD) in a single environment.
-### We use this design when we do not expect heterogeneity in the entire trial area, e.g. small trial and highly-controlled conditions.
+#' Fit mixed models to extract the best linear unbiased predictors for the genotype values,
+#' assuming a completely randomised design (CRD) in a single environment.
+#' We use this design when we do not expect heterogeneity in the entire trial area, e.g. small trial and highly-controlled conditions.
+#' 
+#' @param df data frame containing the model variables
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field (main explanatory variable) in the data frame
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values (fields: id, BLUPs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the random effects
+#' @examples
+#' df = fn_simulate_gx1(design="crd")
+#' out = fn_GX1_CRD_BLUPs(df=df, trait="y", id="gen", verbose=TRUE)
+#' @export
 fn_GX1_CRD_BLUPs = function(df, trait="y", id="gen", verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
-    # Y = list_Y_b_E_b_epi$Y
-    # df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=3))
+    # df = fn_simulate_gx1(design="crd")
     # trait="y"; id="gen"; verbose=TRUE
     ## TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
@@ -53,18 +67,33 @@ fn_GX1_CRD_BLUPs = function(df, trait="y", id="gen", verbose=FALSE) {
         V=list_u_V_fitstats$V))
 }
 
-### Fit linear models to extract the best linear unbiased estimators for the genotype values,
-### assuming a completely randomised design (CRD) in a single environment.
-### We use this design when we do not expect heterogeneity in the entire trial area, e.g. small trial and highly-controlled conditions.
+#' Fit linear models to extract the best linear unbiased estimators for the genotype values,
+#' assuming a completely randomised design (CRD) in a single environment.
+#' We use this design when we do not expect heterogeneity in the entire trial area, e.g. small trial and highly-controlled conditions.
+#' 
+#' @param df data frame containing the model variables
+#' @param control_id name of the control genotype you wish to set as the the intercept from which all other entries where compared against
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field (main explanatory variable) in the data frame
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values (fields: id, BLUEs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the fixed effects
+#' @examples
+#' df = fn_simulate_gx1(design="crd")
+#' out = fn_GX1_CRD_BLUEs(df=df, control_id=unique(df$gen)[2], trait="y", id="gen", verbose=TRUE)
+#' @export
 fn_GX1_CRD_BLUEs = function(df, control_id, trait="y", id="gen", verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
-    # Y = list_Y_b_E_b_epi$Y
-    # df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=3))
-    # control_id = rownames(G)[2]
+    # df = fn_simulate_gx1(design="crd")
+    # control_id=unique(df$gen)[2]
     # trait="y"; id="gen"; verbose=TRUE
     ## TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
@@ -112,23 +141,32 @@ fn_GX1_CRD_BLUEs = function(df, control_id, trait="y", id="gen", verbose=FALSE) 
         V=list_b_V_fitstats$V))
 }
 
-### Fit mixed models to extract the best linear unbiased predictors for the genotype values,
-### assuming a randomised complete/incomplete block design (RBD; each block is a complete replication of all genotypes) in a single environment.
-### We use this design when we expect heterogeneity along a single direction in the trial area, e.g. field trial along a slope.
+#' Fit mixed models to extract the best linear unbiased predictors for the genotype values,
+#' assuming a randomised complete/incomplete block design (RBD; each block is a complete replication of all genotypes) in a single environment.
+#' We use this design when we expect heterogeneity along a single direction in the trial area, e.g. field trial along a slope.
+#' 
+#' @param df data frame containing the model variables
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field (main explanatory variable) in the data frame
+#' @param block name of the complete or incomplete block field in the data frame
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values (fields: id, BLUPs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the random effects
+#' @examples
+#' df = fn_simulate_gx1(design="rbd")
+#' out = fn_GX1_RBD_BLUPs(df=df, trait="y", id="gen", block="rep", verbose=TRUE)
+#' @export
 fn_GX1_RBD_BLUPs = function(df, trait="y", id="gen", block="rep", verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 100
-    # n_blocks = 10
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=10, h2=0.5, pheno_reps=n_blocks, verbose=FALSE)
-    # Y = list_Y_b_E_b_epi$Y
-    # ### Simulate block effects
-    # for (j in 1:n_blocks) {
-    #     Y[, j] = Y[, j] + rnorm(1)
-    # }
-    # df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=n_blocks), rep=rep(1:n_blocks, each=nrow(Y)))
+    # df = fn_simulate_gx1(design="rbd")
     # trait="y"; id="gen"; block="rep"; verbose=TRUE
     ## TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
@@ -187,24 +225,35 @@ fn_GX1_RBD_BLUPs = function(df, trait="y", id="gen", block="rep", verbose=FALSE)
         V=list_u_V_fitstats$V))
 }
 
-### Fit mixed models to extract the best linear unbiased estimators for the genotype values,
-### assuming a randomised complete/incomplete block design (RBD; each block is a complete replication of all genotypes) in a single environment.
-### We use this design when we expect heterogeneity along a single direction in the trial area, e.g. field trial along a slope.
+#' Fit mixed models to extract the best linear unbiased estimators for the genotype values,
+#' assuming a randomised complete/incomplete block design (RBD; each block is a complete replication of all genotypes) in a single environment.
+#' We use this design when we expect heterogeneity along a single direction in the trial area, e.g. field trial along a slope.
+#' 
+#' @param df data frame containing the model variables
+#' @param control_id name of the control genotype you wish to set as the the intercept from which all other entries where compared against
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field (main explanatory variable) in the data frame
+#' @param block name of the complete or incomplete block field in the data frame
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values (fields: id, BLUEs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the fixed effects
+#' @examples
+#' df = fn_simulate_gx1(design="rbd")
+#' out = fn_GX1_RBD_BLUEs(df=df, control_id=unique(df$gen)[3], trait="y", id="gen", 
+#'      block="rep", verbose=TRUE)
+#' @export
 fn_GX1_RBD_BLUEs = function(df, control_id, trait="y", id="gen", block="rep", verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 100
-    # n_blocks = 10
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=10, h2=0.5, pheno_reps=n_blocks, verbose=FALSE)
-    # Y = list_Y_b_E_b_epi$Y
-    # ### Simulate block effects
-    # for (j in 1:n_blocks) {
-    #     Y[, j] = Y[, j] + rnorm(1)
-    # }
-    # df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=n_blocks), rep=rep(1:n_blocks, each=nrow(Y)))
-    # control_id = rownames(G)[2]
+    # df = fn_simulate_gx1(design="rbd")
+    # control_id=unique(df$gen)[2]
     # trait="y"; id="gen"; block="rep"; verbose=TRUE
     ## TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
@@ -267,30 +316,33 @@ fn_GX1_RBD_BLUEs = function(df, control_id, trait="y", id="gen", block="rep", ve
         V=list_b_V_fitstats$V))
 }
 
-### Fit mixed models to extract the best linear unbiased predictors for the genotype values,
-### assuming a spatially (SPAT) explicit design with row-by-column coordinates in a single environment.
-### We use this design when we expect significant heterogeneity in the entire trial area, e.g. field trials with known nutrient gradients along one direction and moisture gradient along an orthogonal direction.
+#' Fit mixed models to extract the best linear unbiased predictors for the genotype values,
+#' assuming a spatially (SPAT) explicit design with row-by-column coordinates in a single environment.
+#' We use this design when we expect significant heterogeneity in the entire trial area, e.g. field trials with known nutrient gradients along one direction and moisture gradient along an orthogonal direction.
+#' 
+#' @param df data frame containing the model variables
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field (main explanatory variable) in the data frame
+#' @param row name of the row field in the data frame
+#' @param col name of the column field in the data frame
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values (fields: id, BLUPs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the random effects
+#' @examples
+#' df = fn_simulate_gx1(design="spat")
+#' out = fn_GX1_SPAT_BLUPs(df=df, trait="y", id="gen", row="row", col="col", verbose=TRUE)
+#' @export
 fn_GX1_SPAT_BLUPs = function(df, trait="y", id="gen", row="row", col="col", verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 100
-    # n_reps = 3
-    # n_rows = 10
-    # n_cols = ceiling(n*n_reps / n_rows)
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=10, h2=0.5, pheno_reps=n_reps, verbose=FALSE)
-    # Y = list_Y_b_E_b_epi$Y
-    # df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=n_reps), expand.grid(row=1:n_rows, col=1:n_cols))
-    # ### Simulate row and column effects
-    # vec_row_effects = rnorm(n=n_rows)
-    # vec_col_effects = rnorm(n=n_cols)
-    # for (i in 1:n_rows) {
-    #     for (j in 1:n_cols) {
-    #         idx = which((df$row==i) & (df$col==j))
-    #         df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
-    #     }
-    # }
+    # df = fn_simulate_gx1(design="spat")
     # trait="y"; id="gen"; row="row"; col="col"; verbose=TRUE
     ## TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
@@ -379,31 +431,36 @@ fn_GX1_SPAT_BLUPs = function(df, trait="y", id="gen", row="row", col="col", verb
         V=list_u_V_fitstats$V))
 }
 
-### Fit mixed models to extract the best linear unbiased estimators for the genotype values,
-### assuming a spatially (SPAT) explicit design with row-by-column coordinates in a single environment.
-### We use this design when we expect significant heterogeneity in the entire trial area, e.g. field trials with known nutrient gradients along one direction and moisture gradient along an orthogonal direction.
+#' Fit mixed models to extract the best linear unbiased estimators for the genotype values,
+#' assuming a spatially (SPAT) explicit design with row-by-column coordinates in a single environment.
+#' We use this design when we expect significant heterogeneity in the entire trial area, e.g. field trials with known nutrient gradients along one direction and moisture gradient along an orthogonal direction.
+#' 
+#' @param df data frame containing the model variables
+#' @param control_id name of the control genotype you wish to set as the the intercept from which all other entries where compared against
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field (main explanatory variable) in the data frame
+#' @param row name of the row field in the data frame
+#' @param col name of the column field in the data frame
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values (fields: id, BLUEs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the fixed effects
+#' @examples
+#' df = fn_simulate_gx1(design="spat")
+#' out = fn_GX1_SPAT_BLUEs(df=df, control_id=unique(df$gen)[4], trait="y", id="gen", 
+#'      row="row", col="col", verbose=TRUE)
+#' @export
 fn_GX1_SPAT_BLUEs = function(df, control_id, trait="y", id="gen", row="row", col="col", verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 100
-    # n_reps = 3
-    # n_rows = 10
-    # n_cols = ceiling(n*n_reps / n_rows)
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=10, h2=0.5, pheno_reps=n_reps, verbose=FALSE)
-    # Y = list_Y_b_E_b_epi$Y
-    # df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=n_reps), expand.grid(row=1:n_rows, col=1:n_cols))
-    # ### Simulate row and column effects
-    # vec_row_effects = rnorm(n=n_rows)
-    # vec_col_effects = rnorm(n=n_cols)
-    # for (i in 1:n_rows) {
-    #     for (j in 1:n_cols) {
-    #         idx = which((df$row==i) & (df$col==j))
-    #         df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
-    #     }
-    # }
-    # control_id = rownames(G)[2]
+    # df = fn_simulate_gx1(design="spat")
+    # control_id=unique(df$gen)[2]
     # trait="y"; id="gen"; row="row"; col="col"; verbose=TRUE
     ## TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {

@@ -378,7 +378,7 @@ fn_extract_gxe_breeding_values = function(list_u_V_fitstats) {
             for (i in 1:length(u)) {
                 # i = 1
                 idx = grep(unlist(strsplit(names(u[i]), ":"))[2], names(u_id))
-                u[i] = u_gxe[i] + u_id[idx]
+                u[i] = u[i] + u_id[idx]
             }
         } else {
             print("Error: unaccounted for number of effects.")
@@ -423,4 +423,109 @@ fn_extract_gxe_breeding_values = function(list_u_V_fitstats) {
     df_BLUPs_GXE = data.frame(id=vec_id, env=vec_env, y=u)
     rownames(df_BLUPs_GXE) = NULL
     return(df_BLUPs_GXE)
+}
+
+###############################################################################################################
+### Miscellaneous wrapper functions to easily run the examples in the documentation of the public functions ###
+###############################################################################################################
+
+#' Wrapper function for the simulation of single-environment trial data
+#'
+#' @param design experimental design, i.e. "crd", "rbd", and "spat" for completely randomised design, randomised complete/incomplete block design and spatial designs, respectively
+#' @param n number of samples (individuals or pools)
+#' @param l number of loci
+#' @param ploidy ploidy level of individual samples or the number of individuals multiplied by their ploidy to simulate pools
+#' @param n_alleles number of alleles per locus
+#' @param pheno_reps number of phenotype replications
+#' @return
+#' data frame of simulated trial data
+#' @export
+fn_simulate_gx1 = function(design=c("crd", "rbd", "spat"), n=100, l=1000, ploidy=42, n_alleles=2, pheno_reps=3) {
+    G = simquantgen::fn_simulate_genotypes(n=n, l=l, ploidy=ploidy, n_alleles=n_alleles, verbose=FALSE)
+    list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=n_alleles, dist_effects="norm",  n_effects=100, h2=0.75, pheno_reps=pheno_reps, verbose=FALSE)
+    Y = list_Y_b_E_b_epi$Y
+    if (design=="crd") {
+        df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=3))
+    } else if (design=="rbd") {
+        ### Simulate block effects
+        n_blocks = pheno_reps
+        for (j in 1:n_blocks) {
+            Y[, j] = Y[, j] + stats::rnorm(1)
+        }
+        df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=n_blocks), rep=rep(1:n_blocks, each=nrow(Y)))
+    } else {
+        ### Simulate row and column effects
+        n_reps = pheno_reps
+        n_rows = 10
+        if ((n*n_reps / n_rows) == round(ceiling(n*n_reps / n_rows))) {
+            n_cols = n*n_reps / n_rows
+        } else {
+            n_cols = 1
+        }
+        df = data.frame(y=as.vector(Y), gen=rep(rownames(G), times=n_reps), 
+             expand.grid(row=1:n_rows, col=1:n_cols))
+        vec_row_effects = stats::rnorm(n=n_rows)
+        vec_col_effects = stats::rnorm(n=n_cols)
+        for (i in 1:n_rows) {
+            for (j in 1:n_cols) {
+                idx = which((df$row==i) & (df$col==j))
+                df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
+            }
+        }
+    }
+    return(df)
+}
+
+#' Wrapper function for the simulation of multi-environment trial data
+#'
+#' @param design experimental design, i.e. "crd", "rbd", and "spat" for completely randomised design, randomised complete/incomplete block design and spatial designs, respectively
+#' @param n number of samples (individuals or pools)
+#' @param l number of loci
+#' @param ploidy ploidy level of individual samples or the number of individuals multiplied by their ploidy to simulate pools
+#' @param n_alleles number of alleles per locus
+#' @param pheno_reps number of phenotype replications
+#' @return
+#' data frame of simulated trial data
+#' @export
+fn_simulate_gxe = function(design=c("crd", "rbd", "spat"), n=30, l=1000, ploidy=42, n_alleles=2, pheno_reps=3) {
+    G = simquantgen::fn_simulate_genotypes(n=n, l=l, ploidy=ploidy, n_alleles=n_alleles, verbose=FALSE)
+    list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, 
+             purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, 
+             frac_additional_QTL_per_env=0.15, n_reps=5, verbose=FALSE)
+    df = list_df_CORR_list_Y$df
+    if (design=="crd") {
+        df = list_df_CORR_list_Y$df
+    } else if (design=="rbd") {
+        ### Simulate block effects
+        n_blocks = pheno_reps
+        for (env in unique(df$env)) {
+            for (j in 1:n_blocks) {
+                idx = which((df$env == env) & (df$rep == as.character(j)))
+                df$y[idx] = df$y[idx] + stats::rnorm(1)
+            }
+        }
+    } else {
+        ### Simulate row and column effects
+        n_reps = pheno_reps
+        n_rows = 10
+        if ((n*n_reps / n_rows) == round(ceiling(n*n_reps / n_rows))) {
+            n_cols = n*n_reps / n_rows
+        } else {
+            n_cols = 1
+        }
+        df_row_col = expand.grid(row=1:n_rows, col=1:n_cols)
+        df$row = rep(df_row_col$row, times=length(unique(df$env)))
+        df$col = rep(df_row_col$col, times=length(unique(df$env)))
+        for (env in unique(df$env)) {
+            vec_row_effects = stats::rnorm(n=n_rows)
+            vec_col_effects = stats::rnorm(n=n_cols)
+            for (i in 1:n_rows) {
+                for (j in 1:n_cols) {
+                    idx = which((df$env == env) & (df$row==i) & (df$col==j))
+                    df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
+                }
+            }
+        }
+    }
+    return(df)
 }

@@ -15,4 +15,5 @@ Remotes:
     jeffersonfparil/simquantgen
 Imports:
     sommer,
-    txtplot
+    txtplot,
+    simquantgen
