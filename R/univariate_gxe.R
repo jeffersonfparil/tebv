@@ -1,11 +1,23 @@
-### Assess genotype-by-environment (GXE) interactions by calculating pairwise trait correlations between environments.
-### The trait values are simply aggregated using arithmetic mean and the pairwise correlations are calculated.
+#' Assess genotype-by-environment (GXE) interactions by calculating pairwise trait correlations between environments.
+#' The trait values are simply aggregated using arithmetic mean and the pairwise correlations are calculated.
+#' 
+#' @param df data frame containing the model variables
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field in the data frame
+#' @param env name of the environment field in the data frame
+#' @param verbose show scatterplots?
+#' @returns
+#' mat_corr: correlations (Pearson's) between environments
+#' mat_pval: p-values of the correlations
+#' @examples
+#' df = fn_simulate_gx1(design="crd")
+#' out = fn_assess_GXE(df=df, trait="y", id="gen", env="env", verbose=TRUE)
+#' @export
 fn_assess_GXE = function(df, trait="y", id="gen", env="env", verbose=FALSE) {
     ### TEST #################################################################################
-    # n = 30
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_df_CORR = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=5, verbose=FALSE)
-    # df=list_df_CORR$df; trait="y"; id="gen"; env="env"; verbose=TRUE
+    # source("helpers.R")
+    # df = fn_simulate_gxe(design="crd")
+    # trait="y"; id="gen"; env="env"; verbose=TRUE
     ### TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
         print(paste0("Error: trait: ", trait, " does not exist in the input dataframe."))
@@ -64,17 +76,35 @@ fn_assess_GXE = function(df, trait="y", id="gen", env="env", verbose=FALSE) {
     return(list(mat_corr=mat_corr, mat_pval=mat_pval))
 }
 
-### Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
-### assuming a completely randomised design (CRD) in multiple environments.
-### We use this design if per environment, we do not expect heterogeneity in each trial area, e.g. small trial and highly-controlled conditions.
+#' Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
+#' assuming a completely randomised design (CRD) in multiple environments.
+#' We use this design if per environment, we do not expect heterogeneity in each trial area, e.g. small trial and highly-controlled conditions.
+#' 
+#' @param df data frame containing the model variables
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field in the data frame
+#' @param env name of the environment field in the data frame
+#' @param tolParInv diagonal loading of the variance-covariance matrix prior to inversion
+#' @param skip_algo_based_on_dimensions if there are potentially more effects to be estimated than the number of observations then skip Henderson's fitting in favour of the Newton-Raphson transformations, and vice-versa
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values per environment (fields: id, env, BLUPs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the random effects
+#' @examples
+#' df = fn_simulate_gx1(design="crd")
+#' out = fn_GXE_CRD_BLUPs(df=df, trait="y", id="gen", env="env", tolParInv=0.01, 
+#'      skip_algo_based_on_dimensions=TRUE, verbose=TRUE)
+#' @export
 fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 30
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=5, verbose=FALSE)
-    # df = list_df_CORR_list_Y$df
+    # df = fn_simulate_gxe(design="crd")
     # trait="y"; id="gen"; env="env"; tolParInv=0.01; skip_algo_based_on_dimensions=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
@@ -182,25 +212,36 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, 
         V=list_u_V_fitstats$V))
 }
 
-## Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
-## assuming a randomised complete block design (RCBD; each block is a complete replication of all genotypes) in multiple environments.
-## We use this design when we expect heterogeneity along a single direction in each trial area, e.g. field trial along a slope.
+#' Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
+#' assuming a randomised complete block design (RCBD; each block is a complete replication of all genotypes) in multiple environments.
+#' We use this design when we expect heterogeneity along a single direction in each trial area, e.g. field trial along a slope.
+#' 
+#' @param df data frame containing the model variables
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field in the data frame
+#' @param env name of the environment field in the data frame
+#' @param block name of the complete or incomplete block field in the data frame
+#' @param tolParInv diagonal loading of the variance-covariance matrix prior to inversion
+#' @param skip_algo_based_on_dimensions if there are potentially more effects to be estimated than the number of observations then skip Henderson's fitting in favour of the Newton-Raphson transformations, and vice-versa
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values per environment (fields: id, env, BLUPs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the random effects
+#' @examples
+#' df = fn_simulate_gx1(design="rbd")
+#' out = fn_GXE_RBD_BLUPs(df=df, trait="y", id="gen", env="env", block="rep", tolParInv=0.01, 
+#'      skip_algo_based_on_dimensions=TRUE, verbose=TRUE)
+#' @export
 fn_GXE_RBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 30
-    # n_blocks = 5
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=n_blocks, verbose=FALSE)
-    # df = list_df_CORR_list_Y$df
-    # ### Simulate block effects
-    # for (env in unique(df$env)) {
-    #     for (j in 1:n_blocks) {
-    #         idx = which((df$env == env) & (df$rep == as.character(j)))
-    #         df$y[idx] = df$y[idx] + stats::rnorm(1)
-    #     }
-    # }
+    # df = fn_simulate_gxe(design="rbd")
     # trait="y"; id="gen"; env="env"; block="rep"; tolParInv=0.01; skip_algo_based_on_dimensions=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {
@@ -312,34 +353,37 @@ fn_GXE_RBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", tol
         model=list_u_V_fitstats$model))
 }
 
-## Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
-### assuming a spatially (SPAT) explicit design with row-by-column coordinates in a multiple environments.
-### We use this design when we expect significant heterogeneity in the each trial area, e.g. field trials with known nutrient gradients along one direction and moisture gradient along an orthogonal direction.
+#' Fit a GXE model to extract the best linear unbiased predictors for the genotype values,
+#' assuming a spatially (SPAT) explicit design with row-by-column coordinates in a multiple environments.
+#' We use this design when we expect significant heterogeneity in the each trial area, e.g. field trials with known nutrient gradients along one direction and moisture gradient along an orthogonal direction.
+#' 
+#' @param df data frame containing the model variables
+#' @param trait name of the continuous numeric response variable in the data frame
+#' @param id name of the entry field in the data frame
+#' @param env name of the environment field in the data frame
+#' @param row name of the row field in the data frame
+#' @param col name of the column field in the data frame
+#' @param tolParInv diagonal loading of the variance-covariance matrix prior to inversion
+#' @param skip_algo_based_on_dimensions if there are potentially more effects to be estimated than the number of observations then skip Henderson's fitting in favour of the Newton-Raphson transformations, and vice-versa
+#' @param verbose show model fitting messages?
+#' @returns
+#' df_effects: data frame trial-estimated breeding values per environment (fields: id, env, BLUPs)
+#' loglik: log-likelihood of the best-fitting model
+#' AIC:  Akaike information criterion (prediction error estimator) of the best-fitting model
+#' BIC: Bayesian information criterion (another prediction error estimator) of the best-fitting model
+#' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
+#' model: Specification of the best-fitting linear model
+#' V: Variance-covariance component of the random effects
+#' @examples
+#' df = fn_simulate_gx1(design="spat")
+#' out = fn_GXE_SPAT_BLUPs(df=df, trait="y", id="gen", env="env", row="row", col="col", 
+#'      tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=TRUE)
+#' @export
 fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col="col", tolParInv=0.01, skip_algo_based_on_dimensions=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
     # source("helpers.R")
     # library(sommer)
-    # n = 30
-    # n_reps = 5
-    # n_rows = 10
-    # n_cols = n*n_reps / n_rows
-    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
-    # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=n_reps, verbose=FALSE)
-    # df = list_df_CORR_list_Y$df
-    # df_row_col = expand.grid(row=1:n_rows, col=1:n_cols)
-    # df$row = rep(df_row_col$row, times=length(unique(df$env)))
-    # df$col = rep(df_row_col$col, times=length(unique(df$env)))
-    # ### Simulate row and column effects
-    # for (env in unique(df$env)) {
-    #     vec_row_effects = rnorm(n=n_rows)
-    #     vec_col_effects = rnorm(n=n_cols)
-    #     for (i in 1:n_rows) {
-    #         for (j in 1:n_cols) {
-    #             idx = which((df$env == env) & (df$row==i) & (df$col==j))
-    #             df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
-    #         }
-    #     }
-    # }
+    # df = fn_simulate_gxe(design="spat")
     # trait="y"; id="gen"; env="env"; row="row"; col="col"; tolParInv=0.01; skip_algo_based_on_dimensions=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.null(eval(parse(text=paste0("df$`", trait, "`"))))) {

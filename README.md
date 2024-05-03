@@ -7,6 +7,12 @@ Trial-estimated breeding values: best linear unbiased predictors of entries in s
 
 A streamlined interface to calculate the breeding values of entries in breeding trials.
 
+## Installation
+
+```R
+devtools::install_github("jeffersonfparil/tebv")
+```
+
 ## Approach and principle
 
 At the moment the approach will be to create a more or less homogenous interface for univariate analysis with plans to extend it to multivariate analysis.
@@ -18,7 +24,7 @@ We then select the best fitting model based on which one on average has higher l
 
 We fit 3 basic experimental design models:
 - completely randomised design (CRD),
-- randomised complete block design (RCBD), and
+- randomised complete/incomplete block design (RBD), and
 - spatial design with row and column effects (SPAT).
 
 These models are implemented for:
