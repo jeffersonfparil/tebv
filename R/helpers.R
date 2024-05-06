@@ -134,12 +134,44 @@ fn_find_best_fit_within_algo = function(list_mod_henderson, list_mod_newtonrap, 
 ### depending on which has higher log-likelihood, lower AIC, and lower BIC on average.
 fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extract_BLUPs=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
-    # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
-    # Y = list_Y_b_E_b_epi$Y
-    # df = data.frame(y=as.vector(Y), id=rep(rownames(G), times=3))
-    # mod_henderson = tryCatch(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
-    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # n = 30
+    # n_reps = 5
+    # n_rows = 10
+    # n_cols = n*n_reps / n_rows
+    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
+    # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=n_reps, verbose=FALSE)
+    # df = list_df_CORR_list_Y$df
+    # df_row_col = expand.grid(row=1:n_rows, col=1:n_cols)
+    # df$row = rep(df_row_col$row, times=length(unique(df$env)))
+    # df$col = rep(df_row_col$col, times=length(unique(df$env)))
+    # ### True genotype values
+    # df_true = data.frame(id=rownames(G), y_true=(G %*% list_df_CORR_list_Y$list_Y_b_E_b_epi$b))
+    # ### Simulate row and column effects
+    # for (env in unique(df$env)) {
+    #     vec_row_effects = rnorm(n=n_rows)
+    #     vec_col_effects = rnorm(n=n_cols)
+    #     for (i in 1:n_rows) {
+    #         for (j in 1:n_cols) {
+    #             idx = which((df$env == env) & (df$row==i) & (df$col==j))
+    #             df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
+    #         }
+    #     }
+    # }
+    # df = data.frame(
+    #     y = df$y, 
+    #     id = df$gen, 
+    #     environ = df$env,
+    #     row = df$row,
+    #     col = df$col
+    # )
+    # df$row_factor = as.factor(df$row)
+    # df$col_factor = as.factor(df$col)
+    # n_rows = nlevels(df$row_factor)
+    # n_cols = nlevels(df$col_factor)
+    # df$block = as.factor(df$row)
+    # tolParInv=0.01; verbose=TRUE
+    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1 + environ + row_factor + col_factor, random= ~ id + vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_henderson = tryCatch(sommer::mmec(y ~ 1 + environ + row_factor + col_factor, random= ~ id + vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
     # extract_BLUPs=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.na(mod_henderson[1]) & is.na(mod_newtonrap[1])) {
@@ -242,6 +274,15 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
             V = mod_henderson$Ci[1:length(b), 1:length(b)]
             rownames(V) = colnames(V) = names(b)
         }
+        ### Extract all the fixed effects
+        vec_fixed_factors = unlist(strsplit(paste(mod_henderson$args$fixed, collapse=""), " [+] "))[-1]
+        vec_factor_names = c("(Intercept)")
+        for (f in vec_fixed_factors) {
+            # f = vec_fixed_factors[1]
+            m = length(unique(eval(parse(text=paste0("mod_henderson$data$`", f, "`")))))
+            vec_factor_names = c(vec_factor_names, rep(f, times=(m-1)))
+        }
+        df_fixed_effects = data.frame(factor=vec_factor_names, level=rownames(mod_henderson$b), effect=mod_henderson$b[,1])
     } else {
         #############################
         ### NEWTON-RAPHSON MODELS ###
@@ -342,6 +383,32 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
             V = mod_newtonrap$VarBeta
             rownames(V) = colnames(V) = names(b)
         }
+        ### Extract all the fixed effects
+        vec_fixed_factors = unlist(strsplit(paste(mod_newtonrap$call$fixed, collapse=""), " [+] "))[-1]
+        df_fixed_effects = mod_newtonrap$Beta
+        colnames(df_fixed_effects) = c("factor", "level", "effect")
+        df_fixed_effects$factor = as.character(df_fixed_effects$factor)
+        df_fixed_effects$level = as.character(df_fixed_effects$level)
+        counter = 0
+        for (f in vec_fixed_factors) {
+            # f = vec_fixed_factors[1]
+            m = length(unique(eval(parse(text=paste0("mod_newtonrap$data$`", f, "`")))))
+            for (i in 1:(m-1)) {
+                # i = 1
+                if (!grepl(paste0("^", f), df_fixed_effects$level[counter+i]) & (df_fixed_effects$level[counter+i] != "(Intercept)")) {
+                    print("Error parsing the fixed effects names in the Newton-Raphson model:")
+                    print(mod_newtonrap$call$fixed)
+                    return(NA)
+                } else if (df_fixed_effects$level[counter+i] == "(Intercept)") {
+                    df_fixed_effects$factor[counter+i] = "(Intercept)"
+                } else {
+                    df_fixed_effects$factor[counter+i] = f
+                    df_fixed_effects$level[counter+i] = gsub(f, "", df_fixed_effects$level[counter+i])
+                }
+            }
+            counter = counter + (m-1)
+            vec_factor_names = c(vec_factor_names, rep(f, times=(m-1)))
+        }
     }
     loglik = fitstats$logLik
     AIC = fitstats$AIC
@@ -355,6 +422,48 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
 
 ### Extract data frame of GxE breeding values
 fn_extract_gxe_breeding_values = function(list_u_V_fitstats) {
+    ### TEST #################################################################################
+    # n = 30
+    # n_reps = 5
+    # n_rows = 10
+    # n_cols = n*n_reps / n_rows
+    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
+    # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 3), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=n_reps, verbose=FALSE)
+    # df = list_df_CORR_list_Y$df
+    # df_row_col = expand.grid(row=1:n_rows, col=1:n_cols)
+    # df$row = rep(df_row_col$row, times=length(unique(df$env)))
+    # df$col = rep(df_row_col$col, times=length(unique(df$env)))
+    # ### True genotype values
+    # df_true = data.frame(id=rownames(G), y_true=(G %*% list_df_CORR_list_Y$list_Y_b_E_b_epi$b))
+    # ### Simulate row and column effects
+    # for (env in unique(df$env)) {
+    #     vec_row_effects = rnorm(n=n_rows)
+    #     vec_col_effects = rnorm(n=n_cols)
+    #     for (i in 1:n_rows) {
+    #         for (j in 1:n_cols) {
+    #             idx = which((df$env == env) & (df$row==i) & (df$col==j))
+    #             df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
+    #         }
+    #     }
+    # }
+    # df = data.frame(
+    #     y = df$y, 
+    #     id = df$gen, 
+    #     environ = df$env,
+    #     row = df$row,
+    #     col = df$col
+    # )
+    # df$row_factor = as.factor(df$row)
+    # df$col_factor = as.factor(df$col)
+    # n_rows = nlevels(df$row_factor)
+    # n_cols = nlevels(df$col_factor)
+    # df$block = as.factor(df$row)
+    # tolParInv=0.01; verbose=TRUE
+    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1 + environ + row_factor + col_factor, random= ~ id + vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_henderson = tryCatch(sommer::mmec(y ~ 1 + environ + row_factor + col_factor, random= ~ id + vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=mod_newtonrap, extract_BLUPs=TRUE, verbose=verbose)
+    # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=mod_henderson, mod_newtonrap=NA, extract_BLUPs=TRUE, verbose=verbose)
+    ### TEST #################################################################################
     if (is.na(list_u_V_fitstats[1])) {
         print("Error: unable to fit any model.")
         return(NA)

@@ -2,8 +2,8 @@
 # library(sommer)
 # library(testthat)
 
-test_that(
-    "fn_divide_into_lower_and_upper", {
+test_that("fn_divide_into_lower_and_upper",
+    {
         print("fn_divide_into_lower_and_upper:")
         ### Simulate data
         G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
@@ -21,8 +21,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_find_best_fit_within_algo", {
+test_that("fn_find_best_fit_within_algo",
+    {
         print("fn_find_best_fit_within_algo:")
         ### Simulate data
         set.seed(123)
@@ -48,8 +48,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_henderson_vs_newtonraphson_fit (single environment)", {
+test_that("fn_henderson_vs_newtonraphson_fit (single environment)",
+    {
         print("fn_henderson_vs_newtonraphson_fit (single environment):")
         ###########################################
         ### SINGLE ENVIRONMENT
@@ -149,8 +149,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_henderson_vs_newtonraphson_fit & fn_extract_gxe_breeding_values (multiple environments)", {
+test_that("fn_henderson_vs_newtonraphson_fit & fn_extract_gxe_breeding_values (multiple environments)",
+    {
         print("fn_henderson_vs_newtonraphson_fit & fn_extract_gxe_breeding_values (multiple environments):")
         ###########################################
         ### MULTIPLE ENVIRONMENTS
