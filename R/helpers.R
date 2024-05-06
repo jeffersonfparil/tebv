@@ -213,6 +213,8 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
                     names(u) = paste0(rep(c("", as.character(paste0("PC", 1:n_PCs))), each=n_ids), ":", names(u))
                     names(u) = gsub("^:", "", names(u))
                 }
+            } else {
+                u = u ### i.e. names(u) = <env_name>:<id_name>
             }
             if (length(u)==0) {
                 return(NA)
@@ -368,7 +370,7 @@ fn_extract_gxe_breeding_values = function(list_u_V_fitstats) {
         ### Retain only the id and environ:id effects
         idx = which(names(u) %in% c(vec_id, vec_environ_x_id))
         u = u[idx]
-        if (length(u) == (n*m)) {
+        if (length(u) <= (n*m)) {
             ### ~ environ:id
             u = u
         } else if (length(u) == (n + (n*m))) {
