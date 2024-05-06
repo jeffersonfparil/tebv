@@ -134,13 +134,13 @@ fn_find_best_fit_within_algo = function(list_mod_henderson, list_mod_newtonrap, 
 ### depending on which has higher log-likelihood, lower AIC, and lower BIC on average.
 fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extract_BLUPs=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
-    # # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
-    # # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
-    # # Y = list_Y_b_E_b_epi$Y
-    # # df = data.frame(y=as.vector(Y), id=rep(rownames(G), times=3))
-    # # mod_henderson = tryCatch(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
-    # # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
-    # # extract_BLUPs=TRUE; verbose=TRUE
+    # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
+    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
+    # Y = list_Y_b_E_b_epi$Y
+    # df = data.frame(y=as.vector(Y), id=rep(rownames(G), times=3))
+    # mod_henderson = tryCatch(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # extract_BLUPs=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.na(mod_henderson[1]) & is.na(mod_newtonrap[1])) {
         print("Error: unable to fit any model.")
