@@ -134,13 +134,71 @@ fn_find_best_fit_within_algo = function(list_mod_henderson, list_mod_newtonrap, 
 ### depending on which has higher log-likelihood, lower AIC, and lower BIC on average.
 fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extract_BLUPs=TRUE, verbose=FALSE) {
     ### TEST #################################################################################
-    # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
-    # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
-    # Y = list_Y_b_E_b_epi$Y
-    # df = data.frame(y=as.vector(Y), id=rep(rownames(G), times=3))
-    # mod_henderson = tryCatch(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
-    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
-    # extract_BLUPs=TRUE; verbose=TRUE
+    # ### Balanced CRD
+    # # G = simquantgen::fn_simulate_genotypes(n=100, l=1000, ploidy=42, n_alleles=2, verbose=TRUE)
+    # # list_Y_b_E_b_epi = simquantgen::fn_simulate_phenotypes(G=G, n_alleles=2, dist_effects="norm", n_effects=100, h2=0.75, pheno_reps=3, verbose=TRUE)
+    # # Y = list_Y_b_E_b_epi$Y
+    # # df = data.frame(y=as.vector(Y), id=rep(rownames(G), times=3))
+    # # mod_henderson = tryCatch(sommer::mmec(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1, random = ~ id, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # # extract_BLUPs=TRUE; verbose=TRUE
+    # ### Unbalanced multi-environment spatial models
+    # n = 30
+    # n_reps = 1
+    # n_rows = 10
+    # n_cols = n*n_reps / n_rows
+    # G = simquantgen::fn_simulate_genotypes(n=n, l=1000, ploidy=42, n_alleles=2, verbose=FALSE)
+    # list_df_CORR_list_Y = simquantgen::fn_simulate_gxe(G=G, dist_effects="norm", n_effects=50, purely_additive=TRUE, h2=0.75, env_factor_levels=c(2, 1), env_factor_effects_sd=0.2, frac_additional_QTL_per_env=0.15, n_reps=n_reps, verbose=FALSE)
+    # df = list_df_CORR_list_Y$df
+    # df_row_col = expand.grid(row=1:n_rows, col=1:n_cols)
+    # df$row = rep(df_row_col$row, times=length(unique(df$env)))
+    # df$col = rep(df_row_col$col, times=length(unique(df$env)))
+    # ### Simulate row and column effects
+    # for (env in unique(df$env)) {
+    #     vec_row_effects = rnorm(n=n_rows)
+    #     vec_col_effects = rnorm(n=n_cols)
+    #     for (i in 1:n_rows) {
+    #         for (j in 1:n_cols) {
+    #             idx = which((df$env == env) & (df$row==i) & (df$col==j))
+    #             df$y[idx] =  df$y[idx] + vec_row_effects[i] + vec_col_effects[j]
+    #         }
+    #     }
+    # }
+    # df = data.frame(
+    #     y = df$y, 
+    #     id = df$gen, 
+    #     environ = df$env,
+    #     row = df$row,
+    #     col = df$col
+    # )
+    # df$row_factor = as.factor(df$row)
+    # df$col_factor = as.factor(df$col)
+    # n_rows = nlevels(df$row_factor)
+    # n_cols = nlevels(df$col_factor)
+    # df$block = as.factor(df$row)
+    # ### Set a few genotypes completely missing in one environment
+    # # vec_set_missing_id_in_env_1 = sort(sample(unique(df$id), size=floor(n/2)))
+    # vec_set_missing_id_in_env_1 = unique(df$id)[1:15]
+    # vec_set_missing_id_in_env_2 = unique(df$id)[!(unique(df$id) %in% vec_set_missing_id_in_env_1)]
+    # idx_env_1 = which((df$id %in% vec_set_missing_id_in_env_1) & (df$environ %in% unique(df$environ)[1]))
+    # idx_env_2 = which((df$id %in% vec_set_missing_id_in_env_2) & (df$environ %in% unique(df$environ)[2]))
+    # df$y[idx_env_1] = NA
+    # df$y[idx_env_2] = NA
+
+    # ### Fit
+    # mod_newtonrap = sommer::mmer(y ~ 1 + environ, 
+    #     random= ~ id + 
+    #         vsr(usr(environ), id) + 
+    #         vsr(usr(environ), row_factor) + 
+    #         vsr(usr(environ), col_factor) + 
+    #         sommer::spl2Da(x.coord=col, y.coord=row, nsegments=c(n_cols, n_rows), degree=c(3,3)), 
+    #     rcov= ~ vsr(dsr(environ), units), 
+    #     tolParInv=1000, data=df, dateWarning=FALSE, verbose=TRUE)
+    # mod_henderson = sommer::mmec(y ~ 1 + environ,
+    #     random= ~ vsc(usc(environ), isc(id)),
+    #     rcov= ~ units, 
+    #     tolParInv=0.01, data=df, dateWarning=FALSE, verbose=TRUE)
+    # verbose = TRUE; extract_BLUPs = TRUE
     ### TEST #################################################################################
     if (is.na(mod_henderson[1]) & is.na(mod_newtonrap[1])) {
         print("Error: unable to fit any model.")
@@ -213,6 +271,8 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
                     names(u) = paste0(rep(c("", as.character(paste0("PC", 1:n_PCs))), each=n_ids), ":", names(u))
                     names(u) = gsub("^:", "", names(u))
                 }
+            } else {
+                u = u ### i.e. names(u) = <env_name>:<id_name>
             }
             if (length(u)==0) {
                 return(NA)
@@ -368,7 +428,7 @@ fn_extract_gxe_breeding_values = function(list_u_V_fitstats) {
         ### Retain only the id and environ:id effects
         idx = which(names(u) %in% c(vec_id, vec_environ_x_id))
         u = u[idx]
-        if (length(u) == (n*m)) {
+        if (length(u) <= (n*m)) {
             ### ~ environ:id
             u = u
         } else if (length(u) == (n + (n*m))) {
