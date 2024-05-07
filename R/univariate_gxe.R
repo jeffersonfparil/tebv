@@ -122,8 +122,8 @@ fn_GXE_CRD_BLUPs = function(df, trait="y", id="gen", env="env", tolParInv=0.01, 
     ### Create consistently named response and explanatory variables for code readability below
     df_gxe_crd = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
-        id = eval(parse(text=paste0("df$", id))), 
-        environ = eval(parse(text=paste0("df$", env)))
+        id = as.factor(eval(parse(text=paste0("df$", id)))), 
+        environ = as.factor(eval(parse(text=paste0("df$", env))))
     )
     if (sum(!is.na(df_gxe_crd$y)) == 0) {
         print(paste0("Error: all data are missing for trait: ", trait, "."))
@@ -263,9 +263,9 @@ fn_GXE_RBD_BLUPs = function(df, trait="y", id="gen", env="env", block="rep", tol
     ### Create consistently named response and explanatory variables for code readability below
     df_gxe_rbd = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
-        id = eval(parse(text=paste0("df$", id))), 
-        environ = eval(parse(text=paste0("df$", env))),
-        block = eval(parse(text=paste0("df$", block)))
+        id = as.factor(eval(parse(text=paste0("df$", id)))), 
+        environ = as.factor(eval(parse(text=paste0("df$", env)))),
+        block = as.factor(eval(parse(text=paste0("df$", block))))
     )
     if (sum(!is.na(df_gxe_rbd$y)) == 0) {
         print(paste0("Error: all data are missing for trait: ", trait, "."))
@@ -409,8 +409,8 @@ fn_GXE_SPAT_BLUPs = function(df, trait="y", id="gen", env="env", row="row", col=
     ### Create consistently named response and explanatory variables for code readability below
     df_gxe_spat = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
-        id = eval(parse(text=paste0("df$", id))), 
-        environ = eval(parse(text=paste0("df$", env))),
+        id = as.factor(eval(parse(text=paste0("df$", id)))), 
+        environ = as.factor(eval(parse(text=paste0("df$", env)))),
         row = eval(parse(text=paste0("df$", row))),
         col = eval(parse(text=paste0("df$", col)))
     )

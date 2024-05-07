@@ -2,8 +2,8 @@
 # library(sommer)
 # library(testthat)
 
-test_that(
-    "fn_assess_GXE", {
+test_that("fn_assess_GXE",
+    {
         print("fn_assess_GXE:")
         ### Simulate data
         set.seed(123)
@@ -23,8 +23,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GXE_CRD_BLUPs", {
+test_that("fn_GXE_CRD_BLUPs",
+    {
         print("fn_GXE_CRD_BLUPs:")
         ### Simulate data
         set.seed(123)
@@ -48,8 +48,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GXE_RBD_BLUPs", {
+test_that("fn_GXE_RBD_BLUPs",
+    {
         print("fn_GXE_RBD_BLUPs:")
         ### Simulate data
         set.seed(123)
@@ -81,8 +81,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GXE_SPAT_BLUPs", {
+test_that("fn_GXE_SPAT_BLUPs",
+    {
         print("fn_GXE_SPAT_BLUPs:")
         ### Simulate data
         set.seed(123)

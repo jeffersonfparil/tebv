@@ -1,4 +1,5 @@
 # tebv
+
 Trial-estimated breeding values: best linear unbiased predictors of entries in single and multi-environment breeding trials
 
 |**Build Status**|**License**|
@@ -18,16 +19,19 @@ devtools::install_github("jeffersonfparil/tebv")
 At the moment the approach will be to create a more or less homogenous interface for univariate analysis with plans to extend it to multivariate analysis.
 
 We fit multiple *plausible* linear models via:
+
 - canonical Henderson's equations (efficient if $n \ge p$) and,
 - Newton-Raphson transformations (more efficient if $n \lt p$).
 We then select the best fitting model based on which one on average has higher log-likelihood, lower AIC and lower BIC.
 
 We fit 3 basic experimental design models:
+
 - completely randomised design (CRD),
 - randomised complete/incomplete block design (RBD), and
 - spatial design with row and column effects (SPAT).
 
 These models are implemented for:
+
 - single environment trials, and
 - multiple environment trials.
 
@@ -42,9 +46,24 @@ I like types, hence R being not really strongly typed I like to prefix my variab
 - `mat_` for matrices (a single uppercase letter can be used especially in the context of linear algebra, e.g. $X$ in $\left( X'X \right)^{-1}$)
 - `arr_` for arrays with more than 2 dimensions
 - `list_` for lists
-- `df_` for data.frames
+- `df_` for data frames
 - `fn_` for functions
 - `mod_` for models
+
+The following are the names of the input data frame and its fields:
+
+- The main input data frame per function is always called `df`.
+- In univariate models, the trait is always called `y` with the corresponding function parameter `trait`, e.g. `trait="y"`.
+- Environmental factor which may refer to different trials across time and space is always called `environ` with the corresponding function parameter `env`, e.g. `env="environ"`.
+- Complete or incomplete blocks factor is always called `block` with the corresponding function parameter `block`, e.g. `block="block"`.
+- Row factor is always called `row` with the corresponding function parameter `row`, e.g. `row="row"`.
+- Column factor is always called `col` with the corresponding function parameter `col`, e.g. `col="col"`.
+
+Model definitions:
+
+- There should always be an explicit `1` to indicate the intecept in the model.
+- The residual variance-covariance matrix should always be explicit even when inpedently and identically distributed, e.g. `rcov(units)`.
+
 
 ## Documentation
 
@@ -75,4 +94,4 @@ source("tests/testthat/test-univariate_gx1.R")
 source("tests/testthat/test-univariate_gxe.R")
 ```
 
-Test new models in [`tests/testthat/test-helpers.R`](tests/testthat/test-helpers.R) and adjust parsing accordingly via: [`R/helpers.R::fn_henderson_vs_newtonraphson_fit()`](R/helpers.R) 
+Test new models in [`tests/testthat/test-helpers.R`](tests/testthat/test-helpers.R) and adjust parsing accordingly via: [`R/helpers.R::fn_henderson_vs_newtonraphson_fit()`](R/helpers.R).
