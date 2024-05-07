@@ -393,6 +393,9 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
         for (f in vec_fixed_factors) {
             # f = vec_fixed_factors[1]
             m = length(unique(eval(parse(text=paste0("mod_newtonrap$data$`", f, "`")))))
+								if (counter == 0) {
+											m = m + 1
+								}
             for (i in 1:(m-1)) {
                 # i = 1
                 if (!grepl(paste0("^", f), df_fixed_effects$level[counter+i]) & (df_fixed_effects$level[counter+i] != "(Intercept)")) {
