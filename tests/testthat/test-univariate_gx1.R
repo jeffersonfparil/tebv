@@ -2,8 +2,8 @@
 # library(sommer)
 # library(testthat)
 
-test_that(
-    "fn_GX1_CRD_BLUPs", {
+test_that("fn_GX1_CRD_BLUPs",
+    {
         print("fn_GX1_CRD_BLUPs:")
         ### Simulate data
         set.seed(123)
@@ -27,8 +27,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GX1_CRD_BLUEs", {
+test_that("fn_GX1_CRD_BLUEs",
+    {
         print("fn_GX1_CRD_BLUEs:")
         ### Simulate data
         set.seed(123)
@@ -52,8 +52,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GX1_RBD_BLUPs", {
+test_that("fn_GX1_RBD_BLUPs",
+    {
         print("fn_GX1_RBD_BLUPs:")
         ### Simulate data
         set.seed(123)
@@ -82,8 +82,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GX1_RBD_BLUEs", {
+test_that("fn_GX1_RBD_BLUEs",
+    {
         print("fn_GX1_RBD_BLUEs:")
         ### Simulate data
         set.seed(123)
@@ -112,8 +112,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GX1_SPAT_BLUPs", {
+test_that("fn_GX1_SPAT_BLUPs",
+    {
         print("fn_GX1_SPAT_BLUPs:")
         ### Simulate data
         set.seed(123)
@@ -148,8 +148,8 @@ test_that(
     }
 )
 
-test_that(
-    "fn_GX1_SPAT_BLUEs", {
+test_that("fn_GX1_SPAT_BLUEs",
+    {
         print("fn_GX1_SPAT_BLUEs:")
         ### Simulate data
         set.seed(123)

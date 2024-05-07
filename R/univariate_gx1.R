@@ -14,6 +14,7 @@
 #' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
 #' model: Specification of the best-fitting linear model
 #' V: Variance-covariance component of the random effects
+#' df_fixed_effects: data frame of fixed factor names, and their corresponding effects
 #' @examples
 #' df = fn_simulate_gx1(design="crd")
 #' out = fn_GX1_CRD_BLUPs(df=df, trait="y", id="gen", verbose=TRUE)
@@ -36,7 +37,7 @@ fn_GX1_CRD_BLUPs = function(df, trait="y", id="gen", verbose=FALSE) {
     ### Create consistently named response and explanatory variables for code readability below
     df_crd = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
-        id = eval(parse(text=paste0("df$", id)))
+        id = as.factor(eval(parse(text=paste0("df$", id))))
     )
     if (sum(!is.na(df_crd$y)) == 0) {
         print(paste0("Error: all data are missing for trait: ", trait, "."))
@@ -84,6 +85,7 @@ fn_GX1_CRD_BLUPs = function(df, trait="y", id="gen", verbose=FALSE) {
 #' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
 #' model: Specification of the best-fitting linear model
 #' V: Variance-covariance component of the fixed effects
+#' df_fixed_effects: data frame of fixed factor names, and their corresponding effects
 #' @examples
 #' df = fn_simulate_gx1(design="crd")
 #' out = fn_GX1_CRD_BLUEs(df=df, control_id=unique(df$gen)[2], trait="y", id="gen", verbose=TRUE)
@@ -158,6 +160,7 @@ fn_GX1_CRD_BLUEs = function(df, control_id, trait="y", id="gen", verbose=FALSE) 
 #' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
 #' model: Specification of the best-fitting linear model
 #' V: Variance-covariance component of the random effects
+#' df_fixed_effects: data frame of fixed factor names, and their corresponding effects
 #' @examples
 #' df = fn_simulate_gx1(design="rbd")
 #' out = fn_GX1_RBD_BLUPs(df=df, trait="y", id="gen", block="rep", verbose=TRUE)
@@ -184,8 +187,8 @@ fn_GX1_RBD_BLUPs = function(df, trait="y", id="gen", block="rep", verbose=FALSE)
     ### Create consistently named response and explanatory variables for code readability below
     df_rbd = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
-        id = eval(parse(text=paste0("df$", id))), 
-        block = eval(parse(text=paste0("df$", block)))
+        id = as.factor(eval(parse(text=paste0("df$", id)))), 
+        block = as.factor(eval(parse(text=paste0("df$", block))))
     )
     if (sum(!is.na(df_rbd$y)) == 0) {
         print(paste0("Error: all data are missing for trait: ", trait, "."))
@@ -204,7 +207,7 @@ fn_GX1_RBD_BLUPs = function(df, trait="y", id="gen", block="rep", verbose=FALSE)
         list_mod_henderson=list(mod_henderson_1, mod_henderson_2), 
         list_mod_newtonrap=list(mod_newtonrap_1, mod_newtonrap_2),
         verbose=verbose)
-    list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap,verbose=verbose)
+    list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=list_best_mods$mod_newtonrap, verbose=verbose)
     # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=list_best_mods$mod_henderson, mod_newtonrap=NA, verbose=verbose)
     # list_u_V_fitstats = fn_henderson_vs_newtonraphson_fit(mod_henderson=NA, mod_newtonrap=list_best_mods$mod_newtonrap, verbose=verbose)
     if (is.na(list_u_V_fitstats[1])) {
@@ -243,6 +246,7 @@ fn_GX1_RBD_BLUPs = function(df, trait="y", id="gen", block="rep", verbose=FALSE)
 #' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
 #' model: Specification of the best-fitting linear model
 #' V: Variance-covariance component of the fixed effects
+#' df_fixed_effects: data frame of fixed factor names, and their corresponding effects
 #' @examples
 #' df = fn_simulate_gx1(design="rbd")
 #' out = fn_GX1_RBD_BLUEs(df=df, control_id=unique(df$gen)[3], trait="y", id="gen", 
@@ -272,7 +276,7 @@ fn_GX1_RBD_BLUEs = function(df, control_id, trait="y", id="gen", block="rep", ve
     df_rbd = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
         id = as.factor(eval(parse(text=paste0("df$", id)))), 
-        block = eval(parse(text=paste0("df$", block)))
+        block = as.factor(eval(parse(text=paste0("df$", block))))
     )
     if (sum(!is.na(df_rbd$y)) == 0) {
         print(paste0("Error: all data are missing for trait: ", trait, "."))
@@ -334,6 +338,7 @@ fn_GX1_RBD_BLUEs = function(df, control_id, trait="y", id="gen", block="rep", ve
 #' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
 #' model: Specification of the best-fitting linear model
 #' V: Variance-covariance component of the random effects
+#' df_fixed_effects: data frame of fixed factor names, and their corresponding effects
 #' @examples
 #' df = fn_simulate_gx1(design="spat")
 #' out = fn_GX1_SPAT_BLUPs(df=df, trait="y", id="gen", row="row", col="col", verbose=TRUE)
@@ -364,7 +369,7 @@ fn_GX1_SPAT_BLUPs = function(df, trait="y", id="gen", row="row", col="col", verb
     ### Create consistently named response and explanatory variables for code readability below
     df_spat = data.frame(
         y = eval(parse(text=paste0("df$", trait))), 
-        id = eval(parse(text=paste0("df$", id))), 
+        id = as.factor(eval(parse(text=paste0("df$", id)))), 
         row = eval(parse(text=paste0("df$", row))), 
         col = eval(parse(text=paste0("df$", col)))
     )
@@ -450,6 +455,7 @@ fn_GX1_SPAT_BLUPs = function(df, trait="y", id="gen", row="row", col="col", verb
 #' algorithm: model fitting algorithm used, i.e. Henderson's (mmec) or Newton-Raphson-transformations (mmer)
 #' model: Specification of the best-fitting linear model
 #' V: Variance-covariance component of the fixed effects
+#' df_fixed_effects: data frame of fixed factor names, and their corresponding effects
 #' @examples
 #' df = fn_simulate_gx1(design="spat")
 #' out = fn_GX1_SPAT_BLUEs(df=df, control_id=unique(df$gen)[4], trait="y", id="gen", 

@@ -170,8 +170,10 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
     # n_cols = nlevels(df$col_factor)
     # df$block = as.factor(df$row)
     # tolParInv=0.01; verbose=TRUE
-    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1 + environ + row_factor + col_factor, random= ~ id + vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
-    # mod_henderson = tryCatch(sommer::mmec(y ~ 1 + environ + row_factor + col_factor, random= ~ id + vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1 + environ + row + col, random= ~ id + vsr(usr(environ), id), rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_henderson = tryCatch(sommer::mmec(y ~ 1 + environ + row + col, random= ~ id + vsc(usc(environ), isc(id)), rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_newtonrap = tryCatch(sommer::mmer(y ~ 1 + id + environ + environ:id, random= ~ row_factor + col_factor, rcov= ~ vsr(dsr(environ), units), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
+    # mod_henderson = tryCatch(sommer::mmec(y ~ 1 + id + environ + environ:id, random= ~ row_factor + col_factor, rcov= ~ vsc(dsc(environ), isc(units)), tolParInv=tolParInv, data=df, dateWarning=FALSE, verbose=verbose), error=function(e){NA})
     # extract_BLUPs=TRUE; verbose=TRUE
     ### TEST #################################################################################
     if (is.na(mod_henderson[1]) & is.na(mod_newtonrap[1])) {
@@ -275,14 +277,8 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
             rownames(V) = colnames(V) = names(b)
         }
         ### Extract all the fixed effects
-        vec_fixed_factors = unlist(strsplit(paste(mod_henderson$args$fixed, collapse=""), " [+] "))[-1]
-        vec_factor_names = c("(Intercept)")
-        for (f in vec_fixed_factors) {
-            # f = vec_fixed_factors[1]
-            m = length(unique(eval(parse(text=paste0("mod_henderson$data$`", f, "`")))))
-            vec_factor_names = c(vec_factor_names, rep(f, times=(m-1)))
-        }
-        df_fixed_effects = data.frame(factor=vec_factor_names, level=rownames(mod_henderson$b), effect=mod_henderson$b[,1])
+        df_fixed_effects = data.frame(names=rownames(mod_henderson$b), effects=mod_henderson$b[,1])
+        rownames(df_fixed_effects) = NULL
     } else {
         #############################
         ### NEWTON-RAPHSON MODELS ###
@@ -384,42 +380,16 @@ fn_henderson_vs_newtonraphson_fit = function(mod_henderson, mod_newtonrap, extra
             rownames(V) = colnames(V) = names(b)
         }
         ### Extract all the fixed effects
-        vec_fixed_factors = unlist(strsplit(paste(mod_newtonrap$call$fixed, collapse=""), " [+] "))[-1]
-        df_fixed_effects = mod_newtonrap$Beta
-        colnames(df_fixed_effects) = c("factor", "level", "effect")
-        df_fixed_effects$factor = as.character(df_fixed_effects$factor)
-        df_fixed_effects$level = as.character(df_fixed_effects$level)
-        counter = 0
-        for (f in vec_fixed_factors) {
-            # f = vec_fixed_factors[1]
-            m = length(unique(eval(parse(text=paste0("mod_newtonrap$data$`", f, "`")))))
-								if (counter == 0) {
-											m = m + 1
-								}
-            for (i in 1:(m-1)) {
-                # i = 1
-                if (!grepl(paste0("^", f), df_fixed_effects$level[counter+i]) & (df_fixed_effects$level[counter+i] != "(Intercept)")) {
-                    print("Error parsing the fixed effects names in the Newton-Raphson model:")
-                    print(mod_newtonrap$call$fixed)
-                    return(NA)
-                } else if (df_fixed_effects$level[counter+i] == "(Intercept)") {
-                    df_fixed_effects$factor[counter+i] = "(Intercept)"
-                } else {
-                    df_fixed_effects$factor[counter+i] = f
-                    df_fixed_effects$level[counter+i] = gsub(f, "", df_fixed_effects$level[counter+i])
-                }
-            }
-            counter = counter + (m-1)
-            vec_factor_names = c(vec_factor_names, rep(f, times=(m-1)))
-        }
+        df_fixed_effects = data.frame(names=mod_newtonrap$Beta$Effect, effects=mod_newtonrap$Beta$Estimate)
+        rownames(df_fixed_effects) = NULL
     }
     loglik = fitstats$logLik
     AIC = fitstats$AIC
     BIC = fitstats$BIC
     if (extract_BLUPs) {
-        return(list(u=u, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model, fit=fit))
+        return(list(u=u, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model, fit=fit, df_fixed_effects=df_fixed_effects))
     } else {
-        return(list(b=b, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model, fit=fit))
+        return(list(b=b, V=V, loglik=loglik, AIC=AIC, BIC=BIC, algorithm=algorithm, model=model, fit=fit, df_fixed_effects=df_fixed_effects))
     }
 }
 
