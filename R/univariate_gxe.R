@@ -58,10 +58,11 @@ fn_assess_GXE = function(df, trait="y", id="gen", env="env", verbose=FALSE) {
     for (i in 1:(m-1)) {
         for (j in (i+1):m) {
             # i = 1; j = 2
-            idx_i = which(df_mu$environ == vec_environ[i])
-            idx_j = which(df_mu$environ == vec_environ[j])
-            y_i = df_mu$y[idx_i]
-            y_j = df_mu$y[idx_j]
+            idx_i = df_mu$environ == vec_environ[i]
+            idx_j = df_mu$environ == vec_environ[j]
+            idx = which(idx_i & idx_j)
+            y_i = df_mu$y[idx]
+            y_j = df_mu$y[idx]
             corr_test = stats::cor.test(y_i, y_j)
             mat_corr[i, j] = mat_corr[j, i] = corr_test$estimate
             mat_pval[i, j] = mat_pval[j, i] = corr_test$p.value
